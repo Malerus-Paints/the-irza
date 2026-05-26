@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  --color-archive-950: #050608;
+  --color-archive-900: #0a0c10;
+  --color-archive-800: #111318;
+  --color-archive-700: #1c1f26;
+  --color-archive-600: #2a2e38;
+  --color-archive-500: #3d4352;
+  --color-archive-400: #5a6175;
+  --color-archive-300: #8891a4;
+  --color-archive-200: #b4bbc8;
+  --color-archive-100: #dde0e6;
+
+  --color-system-400: #33cc77;
+  --color-system-300: #66ff99;
+  --color-system-200: #99ffbb;
+
+  --color-curator-400: #c9b896;
+  --color-curator-300: #f2e9dc;
+  --color-curator-200: #f8f3ec;
+
+  --color-engineer-400: #3ab8e8;
+  --color-engineer-300: #5ed9ff;
+  --color-engineer-200: #9de8ff;
+
+  --font-display: "Bebas Neue", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: "DM Sans", sans-serif;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600&display=swap');
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background-color: #050608;
+  color: #dde0e6;
+  font-family: "DM Sans", sans-serif;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #0a0c10; }
+::-webkit-scrollbar-thumb { background: #2a2e38; border-radius: 2px; }
+
+#root { min-height: 100vh; }
