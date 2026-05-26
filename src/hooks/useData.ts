@@ -175,3 +175,17 @@ export function useArchiveStats() {
     staleTime: 60_000,
   })
 }
+
+// ─── Sync ─────────────────────────────────────────────────────────────────
+
+export function useSyncFromPaintingLibrary() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId }: { userId: string }) => api.syncFromPaintingLibrary(userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['factions'] })
+      qc.invalidateQueries({ queryKey: ['exhibits'] })
+      qc.invalidateQueries({ queryKey: ['stats'] })
+    },
+  })
+}

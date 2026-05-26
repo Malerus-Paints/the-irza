@@ -173,3 +173,60 @@ export function Card({ children, className = '' }: { children: React.ReactNode; 
     </div>
   )
 }
+
+// ─── SyncStatus ───────────────────────────────────────────────────────────────
+
+interface SyncStatusProps {
+  status: 'idle' | 'pending' | 'success' | 'error'
+  result?: { armies_created: number; figures_created: number; errors: any[] }
+  error?: Error | null
+}
+
+export function SyncStatus({ status, result, error }: SyncStatusProps) {
+  if (status === 'idle') return null
+
+  if (status === 'pending') {
+    return (
+      <Card className="border-[#66ff99]/20 bg-[#066630]/10">
+        <div className="flex items-center gap-3">
+          <div className="w-4 h-4 border-2 border-[#1c1f26] border-t-[#66ff99] rounded-full animate-spin" />
+          <span className="font-mono text-sm text-[#66ff99]">SYNCING FROM PAINTING LIBRARY...</span>
+        </div>
+      </Card>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <Card className="border-[#cc3355]/30 bg-[#cc3355]/10">
+        <p className="font-mono text-sm text-[#cc3355]">SYNC FAILED: {error?.message || 'Unknown error'}</p>
+      </Card>
+    )
+  }
+
+  if (status === 'success' && result) {
+    return (
+      <Card className="border-[#66ff99]/20 bg-[#066630]/10">
+        <div className="flex flex-col gap-2">
+          <p className="font-mono text-sm text-[#66ff99]">
+            ✓ SYNC COMPLETE: {result.armies_created} factions, {result.figures_created} exhibits
+          </p>
+          {result.errors.length > 0 && (
+            <details className="text-xs">
+              <summary className="cursor-pointer text-[#f5c842]">{result.errors.length} errors</summary>
+              <div className="mt-2 space-y-1 text-[#cc3355]">
+                {result.errors.map((err, i) => (
+                  <p key={i}>
+                    {err.army_name || err.figure_name}: {err.error}
+                  </p>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      </Card>
+    )
+  }
+
+  return null
+}
