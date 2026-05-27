@@ -166,9 +166,9 @@ export function PageHeader({
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
-export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function Card({ children, className = '', onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
   return (
-    <div className={`bg-[#111318] border border-[#1c1f26] rounded-lg p-4 ${className}`}>
+    <div className={`bg-[#111318] border border-[#1c1f26] rounded-lg p-4 ${className}`} onClick={onClick}>
       {children}
     </div>
   )

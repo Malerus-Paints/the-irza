@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import { useLoreTemplates, useFactions, useExhibits, useAnomalies } from '../hooks/useData'
+import { useLoreTemplates, useFactions } from '../hooks/useData'
 import { Spinner, PageHeader, Card, Button, Textarea, Select } from '../components/ui'
 import type { LoreTemplate } from '../types'
 
 export function LoreGeneratorPage() {
   const { data: templates = [], isLoading: loadingTemplates } = useLoreTemplates()
   const { data: factions = [] } = useFactions()
-  const { data: exhibits = [] } = useExhibits()
-  const { data: anomalies = [] } = useAnomalies()
 
   const [selectedTemplate, setSelectedTemplate] = useState<LoreTemplate | null>(null)
   const [selectedFactionId, setSelectedFactionId] = useState('')

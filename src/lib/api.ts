@@ -244,8 +244,8 @@ export async function getArchiveStats(): Promise<ArchiveStats> {
     exhibits: exhibits.count ?? 0,
     anomalies: anomalies.count ?? 0,
     episodes_posted: (episodes.data ?? []).filter((e) => e.status === 'posted').length,
-    needs_lore: allStatuses.filter((e) => (e as { status: EntryStatus }).status === 'needs-lore').length,
-    canon_locked: allStatuses.filter((e) => (e as { status: EntryStatus }).status === 'canon-locked').length,
+    needs_lore: allStatuses.filter((e) => (e as unknown as { status: EntryStatus }).status === 'needs-lore').length,
+    canon_locked: allStatuses.filter((e) => (e as unknown as { status: EntryStatus }).status === 'canon-locked').length,
   }
 }
 
