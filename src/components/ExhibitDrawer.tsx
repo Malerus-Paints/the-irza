@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useCreateExhibit, useUpdateExhibit, useFactions } from '../hooks/useData'
+import { useCreateExhibit, useUpdateExhibit, useDeleteExhibit, useFactions } from '../hooks/useData'
 import { Button } from './ui'
 import type {
   Exhibit, EntryStatus, ArchiveStatus, ThreatLevel,
@@ -89,11 +89,13 @@ interface Props {
 
 export function ExhibitDrawer({ exhibit, onClose }: Props) {
   const [form, setForm] = useState<ExhibitFormData>(exhibit ? exhibitToForm(exhibit) : emptyForm())
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const { data: factions = [] } = useFactions()
   const createExhibit = useCreateExhibit()
   const updateExhibit = useUpdateExhibit()
+  const deleteExhibit = useDeleteExhibit()
 
-  const isPending = createExhibit.isPending || updateExhibit.isPending
+  const isPending = createExhibit.isPending || updateExhibit.isPending || deleteExhibit.isPending
   const isEdit = !!exhibit
 
   // Re-populate form when exhibit changes (e.g. switching rows)
@@ -374,6 +376,25 @@ export function ExhibitDrawer({ exhibit, onClose }: Props) {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-[#1c1f26] flex items-center justify-between shrink-0 bg-[#0a0c10]">
+          <div className="flex gap-2">
+            {isEdit && !confirmDelete && (
+              <Button variant="ghost" onClick={() => setConfirmDelete(true)} disabled={isPending}>
+                <span className="text-[#cc3355]">DELETE</span>
+              </Button>
+            )}
+            {isEdit && confirmDelete && (
+              <>
+                <span className="font-mono text-[10px] text-[#cc3355] tracking-widest self-center">CONFIRM DELETE?</span>
+                <Button variant="ghost" onClick={() => setConfirmDelete(false)} disabled={isPending}>CANCEL</Button>
+                <Button
+                  onClick={() => deleteExhibit.mutate(exhibit!.id, { onSuccess: onClose })}
+                  disabled={isPending}
+                >
+                  <span className="text-[#cc3355]">{isPending ? 'DELETING...' : 'YES, DELETE'}</span>
+                </Button>
+              </>
+            )}
+          </div>
           {(createExhibit.isError || updateExhibit.isError) && (
             <span className="font-mono text-[10px] text-[#cc3355] tracking-widest">
               SAVE FAILED — CHECK CONSOLE

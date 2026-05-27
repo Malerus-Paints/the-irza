@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useFactions, useUpdateFaction } from '../hooks/useData'
 import { Spinner, EmptyState, PageHeader, StatusBadge, ThreatBadge, Button, Card } from '../components/ui'
+import { FactionDrawer } from '../components/FactionDrawer'
 import type { Faction, EntryStatus } from '../types'
 
 const STATUS_OPTIONS: { value: EntryStatus | 'all'; label: string }[] = [
@@ -17,6 +18,8 @@ export function FactionsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<EntryStatus | 'all'>('all')
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [drawerFaction, setDrawerFaction] = useState<Faction | null | undefined>(undefined)
+  // undefined = closed, null = create mode, Faction = edit mode
 
   const filtered = factions.filter((f) => {
     const matchesSearch = f.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -32,6 +35,9 @@ export function FactionsPage() {
       <PageHeader
         title="FACTION REGISTRY"
         subtitle={`${factions.length} FACTIONS LOGGED — CROSS-REFERENCING ACTIVE`}
+        action={
+          <Button size="sm" onClick={() => setDrawerFaction(null)}>+ NEW FACTION</Button>
+        }
       />
 
       {/* Filters */}
@@ -71,9 +77,16 @@ export function FactionsPage() {
               expanded={expanded === faction.id}
               onToggle={() => setExpanded(expanded === faction.id ? null : faction.id)}
               onStatusChange={(status) => updateFaction.mutate({ id: faction.id, payload: { status } })}
+              onEdit={() => setDrawerFaction(faction)}
             />
           ))}
         </div>
+      )}
+      {drawerFaction !== undefined && (
+        <FactionDrawer
+          faction={drawerFaction}
+          onClose={() => setDrawerFaction(undefined)}
+        />
       )}
     </div>
   )
@@ -84,11 +97,13 @@ function FactionRow({
   expanded,
   onToggle,
   onStatusChange,
+  onEdit,
 }: {
   faction: Faction
   expanded: boolean
   onToggle: () => void
   onStatusChange: (status: EntryStatus) => void
+  onEdit: () => void
 }) {
   return (
     <Card className={`cursor-pointer transition-colors ${expanded ? 'border-[#66ff99]/20' : 'hover:border-[#2a2e38]'}`}>
@@ -164,7 +179,7 @@ function FactionRow({
           )}
 
           {/* Status controls */}
-          <div className="flex items-center gap-2 pt-2">
+          <div className="flex items-center gap-2 pt-2 flex-wrap">
             <span className="font-mono text-[10px] text-[#3d4352] tracking-widest">SET STATUS:</span>
             {(['drafted', 'needs-lore', 'canon-locked', 'published'] as EntryStatus[]).map((s) => (
               <Button
@@ -176,6 +191,9 @@ function FactionRow({
                 {s.toUpperCase().replace('-', ' ')}
               </Button>
             ))}
+            <div className="ml-auto">
+              <Button size="sm" onClick={onEdit}>EDIT RECORD</Button>
+            </div>
           </div>
         </div>
       )}
