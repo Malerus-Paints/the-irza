@@ -257,6 +257,18 @@ export interface SyncResult {
   errors: { army_name?: string; figure_name?: string; error: string }[]
 }
 
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message
+  if (typeof err === 'object' && err !== null) {
+    const e = err as Record<string, unknown>
+    if (typeof e.message === 'string') return e.message
+    if (typeof e.details === 'string') return e.details
+    if (typeof e.hint === 'string') return e.hint
+    return JSON.stringify(err)
+  }
+  return String(err)
+}
+
 export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Promise<SyncResult> {
   const result: SyncResult = {
     armies_created: 0,
@@ -298,11 +310,13 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
     // Process each army
     for (const army of armies) {
       try {
-        // Check if faction with this name already exists
+        const armyMinitrackId = `minitrack:${army.id}`
+
+        // Check if faction already exists for this army (by stable minitrack ID)
         const { data: existingFaction } = await supabase
           .from('factions')
           .select('id')
-          .eq('name', army.name)
+          .eq('drive_doc_id', armyMinitrackId)
           .limit(1)
 
         let factionId: string
@@ -322,7 +336,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
             exhibits_catalogued: 0,
             origin_reality_status: 'unknown',
             lore_text: army.description || null,
-            drive_doc_id: `minitrack:${army.id}`,
+            drive_doc_id: armyMinitrackId,
             drive_doc_url: null,
             notes: null,
             status: 'drafted',
@@ -366,9 +380,22 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           continue
         }
 
-        // Create exhibits for each figure
+        // Create exhibits for each figure (skip if already synced)
         for (const figure of figures || []) {
           try {
+            const minitrackId = `minitrack:${figure.id}`
+
+            // Check if exhibit already exists for this figure
+            const { data: existing } = await supabase
+              .from('exhibits')
+              .select('id')
+              .eq('drive_doc_id', minitrackId)
+              .limit(1)
+
+            if (existing && existing.length > 0) {
+              continue // already imported, skip
+            }
+
             // Map figure status to exhibit status
             let exhibitStatus: EntryStatus = 'drafted'
             if (figure.status === 'complete' || figure.status === 'display') {
@@ -400,14 +427,14 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               biologist_assessment: null,
               origin_reality_status: 'unknown',
               backlog_release: false,
-              drive_doc_id: `minitrack:${figure.id}`,
+              drive_doc_id: minitrackId,
               drive_doc_url: null,
               status: exhibitStatus,
             })
 
             result.figures_created++
           } catch (figureErr) {
-            const error = figureErr instanceof Error ? figureErr.message : String(figureErr)
+            const error = extractErrorMessage(figureErr)
             result.errors.push({
               figure_name: figure.name,
               error: `Failed to create exhibit: ${error}`,
@@ -420,7 +447,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           exhibits_catalogued: (figures || []).length,
         })
       } catch (armyErr) {
-        const error = armyErr instanceof Error ? armyErr.message : String(armyErr)
+        const error = extractErrorMessage(armyErr)
         result.errors.push({
           army_name: army.name,
           error: `Failed to sync army: ${error}`,
@@ -428,8 +455,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
       }
     }
   } catch (err) {
-    const error = err instanceof Error ? err.message : String(err)
-    throw new Error(`Painting Library sync failed: ${error}`)
+    throw new Error(`Painting Library sync failed: ${extractErrorMessage(err)}`)
   }
 
   return result

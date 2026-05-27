@@ -1,16 +1,20 @@
 import { useState } from 'react'
 import { useExhibits } from '../hooks/useData'
 import { Spinner, EmptyState, PageHeader, StatusBadge, ThreatBadge, Card, Button } from '../components/ui'
-import type { EntryStatus } from '../types'
+import { ExhibitDrawer } from '../components/ExhibitDrawer'
+import type { Exhibit, EntryStatus } from '../types'
 
 export function ExhibitsPage() {
   const { data: exhibits = [], isLoading } = useExhibits()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<EntryStatus | 'all'>('all')
+  const [drawerExhibit, setDrawerExhibit] = useState<Exhibit | null | undefined>(undefined)
+  // undefined = closed, null = create mode, Exhibit = edit mode
 
   const filtered = exhibits.filter((e) => {
     const matchesSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
-      (e.exhibit_number?.toLowerCase() ?? '').includes(search.toLowerCase())
+      (e.exhibit_number?.toLowerCase() ?? '').includes(search.toLowerCase()) ||
+      (e.faction?.name.toLowerCase() ?? '').includes(search.toLowerCase())
     const matchesStatus = statusFilter === 'all' || e.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -23,7 +27,7 @@ export function ExhibitsPage() {
         title="EXHIBIT DATABASE"
         subtitle={`${exhibits.length} EXHIBITS CATALOGUED`}
         action={
-          <Button size="sm">+ NEW EXHIBIT</Button>
+          <Button size="sm" onClick={() => setDrawerExhibit(null)}>+ NEW EXHIBIT</Button>
         }
       />
 
@@ -54,7 +58,11 @@ export function ExhibitsPage() {
       ) : (
         <div className="space-y-2">
           {filtered.map((exhibit) => (
-            <Card key={exhibit.id} className="hover:border-[#2a2e38] transition-colors">
+            <Card
+              key={exhibit.id}
+              className="hover:border-[#2a2e38] transition-colors cursor-pointer"
+              onClick={() => setDrawerExhibit(exhibit)}
+            >
               <div className="flex items-center gap-4">
                 <div className="font-mono text-xs text-[#3d4352] w-16 shrink-0">
                   #{exhibit.exhibit_number ?? '—'}
@@ -74,10 +82,19 @@ export function ExhibitsPage() {
                   {exhibit.archive_status}
                 </span>
                 <StatusBadge status={exhibit.status} />
+                <div className="text-[#3d4352] font-mono text-sm shrink-0">›</div>
               </div>
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Drawer — only mount when open */}
+      {drawerExhibit !== undefined && (
+        <ExhibitDrawer
+          exhibit={drawerExhibit}
+          onClose={() => setDrawerExhibit(undefined)}
+        />
       )}
     </div>
   )

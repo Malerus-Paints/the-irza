@@ -1,21 +1,18 @@
 import { useState } from 'react'
 import { useArchiveStats, useSyncFromPaintingLibrary } from '../hooks/useData'
-import { Spinner, Card, Button, Input, SyncStatus } from '../components/ui'
+import { Spinner, Card, Button, SyncStatus } from '../components/ui'
+
+const PAINTING_LIBRARY_USER_ID = import.meta.env.VITE_PAINTING_LIBRARY_USER_ID as string
 
 export function DashboardPage() {
   const { data: stats, isLoading } = useArchiveStats()
   const syncMutation = useSyncFromPaintingLibrary()
-  const [userId, setUserId] = useState('')
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
 
   if (isLoading) return <Spinner />
 
   const handleSync = () => {
-    if (!userId.trim()) {
-      alert('Please enter a Painting Library user ID')
-      return
-    }
-    syncMutation.mutate({ userId }, {
+    syncMutation.mutate({ userId: PAINTING_LIBRARY_USER_ID }, {
       onSuccess: () => {
         setLastSyncTime(new Date().toLocaleString())
       },
@@ -66,18 +63,12 @@ export function DashboardPage() {
             <p className="font-sans text-sm text-[#8891a4]">
               Import armies and figures from Painting Library to populate archive factions and exhibits.
             </p>
-            <div className="flex gap-3">
-              <Input
-                placeholder="Painting Library User ID (UUID)"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                disabled={syncMutation.isPending}
-              />
+            <div>
               <Button
                 onClick={handleSync}
-                disabled={syncMutation.isPending || !userId.trim()}
+                disabled={syncMutation.isPending}
               >
-                {syncMutation.isPending ? 'SYNCING...' : 'SYNC'}
+                {syncMutation.isPending ? 'SYNCING...' : 'SYNC FROM PAINTING LIBRARY'}
               </Button>
             </div>
             {lastSyncTime && (
