@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useFactions, useUpdateFaction } from '../hooks/useData'
 import { Spinner, EmptyState, PageHeader, StatusBadge, ThreatBadge, Button, Card } from '../components/ui'
 import { FactionDrawer } from '../components/FactionDrawer'
+import { FactionLoreEditor } from '../components/FactionLoreEditor'
 import type { Faction, EntryStatus } from '../types'
 
 const STATUS_OPTIONS: { value: EntryStatus | 'all'; label: string }[] = [
@@ -19,6 +20,7 @@ export function FactionsPage() {
   const [statusFilter, setStatusFilter] = useState<EntryStatus | 'all'>('all')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [drawerFaction, setDrawerFaction] = useState<Faction | null | undefined>(undefined)
+  const [loreEditorFaction, setLoreEditorFaction] = useState<Faction | null>(null)
   // undefined = closed, null = create mode, Faction = edit mode
 
   const filtered = factions.filter((f) => {
@@ -78,6 +80,7 @@ export function FactionsPage() {
               onToggle={() => setExpanded(expanded === faction.id ? null : faction.id)}
               onStatusChange={(status) => updateFaction.mutate({ id: faction.id, payload: { status } })}
               onEdit={() => setDrawerFaction(faction)}
+              onEditLore={() => setLoreEditorFaction(faction)}
             />
           ))}
         </div>
@@ -86,6 +89,12 @@ export function FactionsPage() {
         <FactionDrawer
           faction={drawerFaction}
           onClose={() => setDrawerFaction(undefined)}
+        />
+      )}
+      {loreEditorFaction && (
+        <FactionLoreEditor
+          faction={loreEditorFaction}
+          onClose={() => setLoreEditorFaction(null)}
         />
       )}
     </div>
@@ -98,12 +107,14 @@ function FactionRow({
   onToggle,
   onStatusChange,
   onEdit,
+  onEditLore,
 }: {
   faction: Faction
   expanded: boolean
   onToggle: () => void
   onStatusChange: (status: EntryStatus) => void
   onEdit: () => void
+  onEditLore: () => void
 }) {
   return (
     <Card className={`cursor-pointer transition-colors ${expanded ? 'border-[#66ff99]/20' : 'hover:border-[#2a2e38]'}`}>
@@ -191,7 +202,8 @@ function FactionRow({
                 {s.toUpperCase().replace('-', ' ')}
               </Button>
             ))}
-            <div className="ml-auto">
+            <div className="ml-auto flex gap-2">
+              <Button size="sm" variant="ghost" onClick={onEditLore}>EDIT LORE</Button>
               <Button size="sm" onClick={onEdit}>EDIT RECORD</Button>
             </div>
           </div>
