@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from './supabase'
-import type { Faction, Squad, Exhibit, Anomaly, Episode, LoreTemplate, EntryStatus } from '../types'
+import type { Faction, Squad, Exhibit, Anomaly, Episode, LoreTemplate, EntryStatus, Sound } from '../types'
 
 // ─── Factions ─────────────────────────────────────────────────────────────────
 
@@ -247,6 +247,65 @@ export async function getArchiveStats(): Promise<ArchiveStats> {
     needs_lore: allStatuses.filter((e) => (e as unknown as { status: EntryStatus }).status === 'needs-lore').length,
     canon_locked: allStatuses.filter((e) => (e as unknown as { status: EntryStatus }).status === 'canon-locked').length,
   }
+}
+
+// ─── Sound Library ────────────────────────────────────────────────────────────
+
+export async function getSounds(): Promise<Sound[]> {
+  const { data, error } = await supabase
+    .from('sounds')
+    .select('*')
+    .order('category')
+    .order('sort_order')
+  if (error) throw error
+  return data ?? []
+}
+
+export async function updateSound(id: string, payload: Partial<Sound>): Promise<Sound> {
+  const { data, error } = await supabase
+    .from('sounds')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+// ─── Freesound Search ─────────────────────────────────────────────────────────
+
+export interface FreesoundResult {
+  id: number
+  name: string
+  description: string
+  tags: string[]
+  duration: number
+  license: string
+  previews: {
+    'preview-hq-mp3': string
+    'preview-lq-mp3': string
+  }
+}
+
+export interface FreesoundResponse {
+  count: number
+  results: FreesoundResult[]
+}
+
+export async function searchFreesound(query: string): Promise<FreesoundResponse> {
+  const token = import.meta.env.VITE_FREESOUND_API_KEY
+  if (!token) throw new Error('VITE_FREESOUND_API_KEY not set')
+
+  const params = new URLSearchParams({
+    query,
+    token,
+    fields: 'id,name,description,tags,duration,license,previews',
+    page_size: '12',
+  })
+
+  const res = await fetch(`https://freesound.org/apiv2/search/text/?${params}`)
+  if (!res.ok) throw new Error(`Freesound API error: ${res.status} ${res.statusText}`)
+  return res.json()
 }
 
 // ─── Painting Library Sync ────────────────────────────────────────────────────────

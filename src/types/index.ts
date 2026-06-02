@@ -162,6 +162,51 @@ export const STATUS_COLORS: Record<EntryStatus, string> = {
   'published': 'bg-engineer-400/20 text-engineer-300',
 }
 
+// ─── Sound Library ────────────────────────────────────────────────────────────
+
+export type SoundStatus = 'unfound' | 'found' | 'licensed' | 'local'
+
+export interface Sound {
+  id: string
+  category: string
+  name: string
+  intensity_level: string | null
+  character: string | null
+  status: SoundStatus
+  freesound_id: string | null
+  freesound_url: string | null
+  local_filename: string | null
+  license: string | null
+  duration_seconds: number | null
+  notes: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export const SOUND_STATUS_LABELS: Record<SoundStatus, string> = {
+  unfound: 'UNFOUND',
+  found: 'LOCATED',
+  licensed: 'LICENSED',
+  local: 'IN ARCHIVE',
+}
+
+export const SOUND_STATUS_COLORS: Record<SoundStatus, string> = {
+  unfound: 'bg-archive-700 text-archive-400',
+  found: 'bg-[#e8b84b]/15 text-[#e8b84b]',
+  licensed: 'bg-engineer-400/20 text-engineer-300',
+  local: 'bg-system-400/20 text-system-300',
+}
+
+export const SOUND_CATEGORIES = [
+  'FACILITY BED',
+  'SYSTEM UI',
+  'GLITCH / INSTABILITY',
+  'TRANSITIONS',
+  'CHARACTER SIGNATURES',
+  'ANOMALY / THREAT',
+] as const
+
 export const EPISODE_TYPE_LABELS: Record<string, string> = {
   'A': 'Exhibit Record',
   'B': 'Behavioral Cluster',

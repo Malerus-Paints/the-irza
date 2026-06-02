@@ -9,6 +9,7 @@ const NAV = [
   { to: '/episodes',   label: 'EPISODE TRACKER',   icon: '▶' },
   { to: '/lore',       label: 'LORE GENERATOR',    icon: '✦' },
   { to: '/script',     label: 'SCRIPT WORKSPACE',  icon: '✎' },
+  { to: '/sounds',     label: 'SOUND LIBRARY',     icon: '◎' },
   { to: '/search',     label: 'CANON SEARCH',      icon: '⌕' },
 ]
 

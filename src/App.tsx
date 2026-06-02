@@ -9,6 +9,7 @@ import { EpisodesPage } from './pages/EpisodesPage'
 import { LoreGeneratorPage } from './pages/LoreGeneratorPage'
 import { SearchPage } from './pages/SearchPage'
 import { ScriptWorkspacePage } from './pages/ScriptWorkspacePage'
+import { SoundLibraryPage } from './pages/SoundLibraryPage'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
               <Route path="/lore" element={<LoreGeneratorPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/script" element={<ScriptWorkspacePage />} />
+              <Route path="/sounds" element={<SoundLibraryPage />} />
             </Routes>
           </div>
         </main>

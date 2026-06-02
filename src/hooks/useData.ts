@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as api from '../lib/api'
-import type { Faction, Squad, Exhibit, Anomaly, Episode } from '../types'
+import type { Faction, Squad, Exhibit, Anomaly, Episode, Sound } from '../types'
 
 // ─── Factions ─────────────────────────────────────────────────────────────────
 
@@ -173,6 +173,31 @@ export function useArchiveStats() {
     queryKey: ['stats'],
     queryFn: api.getArchiveStats,
     staleTime: 60_000,
+  })
+}
+
+// ─── Sound Library ────────────────────────────────────────────────────────────
+
+export function useSounds() {
+  return useQuery({ queryKey: ['sounds'], queryFn: api.getSounds })
+}
+
+export function useUpdateSound() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<Sound> }) =>
+      api.updateSound(id, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sounds'] }),
+  })
+}
+
+export function useFreesoundSearch(query: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['freesound', query],
+    queryFn: () => api.searchFreesound(query),
+    enabled: enabled && query.trim().length > 0,
+    staleTime: 5 * 60_000,
+    retry: false,
   })
 }
 
