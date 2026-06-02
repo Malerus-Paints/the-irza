@@ -1,5 +1,4 @@
 import { NavLink } from 'react-router-dom'
-import { supabase } from '../../lib/supabase'
 
 const NAV = [
   { to: '/',            label: 'ARCHIVE STATUS',   icon: '◈' },
@@ -49,16 +48,10 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-4 border-t border-[#1c1f26] space-y-2">
+      <div className="px-4 py-4 border-t border-[#1c1f26]">
         <div className="text-[#3d4352] font-mono text-[10px] tracking-widest">
           SYSTEM v1.0.0
         </div>
-        <button
-          onClick={() => supabase.auth.signOut()}
-          className="text-[#3d4352] hover:text-[#cc3355] font-mono text-[10px] tracking-widest transition-colors w-full text-left"
-        >
-          SIGN OUT
-        </button>
       </div>
     </aside>
   )
