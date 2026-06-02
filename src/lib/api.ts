@@ -253,8 +253,9 @@ export async function getArchiveStats(): Promise<ArchiveStats> {
 
 export interface SyncResult {
   armies_created: number
+  squads_created: number
   figures_created: number
-  errors: { army_name?: string; figure_name?: string; error: string }[]
+  errors: { army_name?: string; group_name?: string; figure_name?: string; error: string }[]
 }
 
 function extractErrorMessage(err: unknown): string {
@@ -272,6 +273,7 @@ function extractErrorMessage(err: unknown): string {
 export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Promise<SyncResult> {
   const result: SyncResult = {
     armies_created: 0,
+    squads_created: 0,
     figures_created: 0,
     errors: [],
   }
@@ -347,6 +349,64 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           nextFactionNum++
         }
 
+        // Fetch groups for this army and create as squads
+        const { data: groups, error: groupsError } = await paintingLibSupabase
+          .from('groups')
+          .select('id, name')
+          .eq('army_id', army.id)
+
+        if (groupsError) {
+          result.errors.push({
+            army_name: army.name,
+            error: `Failed to fetch groups: ${groupsError.message}`,
+          })
+        }
+
+        if (groups && groups.length > 0) {
+          const { data: existingSquads } = await supabase.from('squads').select('squad_id').order('squad_id', { ascending: false }).limit(1)
+          let nextSquadNum = 1
+          if (existingSquads && existingSquads.length > 0) {
+            const match = existingSquads[0].squad_id.match(/S-(\d+)/)
+            if (match) nextSquadNum = parseInt(match[1]) + 1
+          }
+
+          for (const group of groups) {
+            try {
+              const groupMinitrackId = `minitrack:group:${group.id}`
+              const { data: existingSquad } = await supabase
+                .from('squads')
+                .select('id')
+                .eq('drive_doc_id', groupMinitrackId)
+                .limit(1)
+
+              if (!existingSquad || existingSquad.length === 0) {
+                const squadNum = String(nextSquadNum).padStart(3, '0')
+                await createSquad({
+                  squad_id: `S-${squadNum}`,
+                  name: group.name,
+                  faction_id: factionId,
+                  squad_role: 'UNKNOWN',
+                  domain: null,
+                  threat_level: null,
+                  collective_behavior_type: null,
+                  system_status: 'MONITORING',
+                  lore_text: null,
+                  drive_doc_id: groupMinitrackId,
+                  drive_doc_url: null,
+                  status: 'drafted',
+                })
+                result.squads_created++
+                nextSquadNum++
+              }
+            } catch (groupErr) {
+              result.errors.push({
+                group_name: group.name,
+                error: `Failed to create squad: ${extractErrorMessage(groupErr)}`,
+              })
+            }
+          }
+        }
+
         // Fetch figures for this army via figure_armies junction
         const { data: figureArmies, error: figureArmiesError } = await paintingLibSupabase
           .from('figure_armies')
@@ -369,7 +429,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
         const figureIds = figureArmies.map((fa) => fa.figure_id)
         const { data: figures, error: figuresError } = await paintingLibSupabase
           .from('figures')
-          .select('id, name, status, base_size_mm, points_cost, notes, is_group')
+          .select('id, name, status, base_size_mm, points_cost, notes, is_group, lore_text')
           .in('id', figureIds)
 
         if (figuresError) {
@@ -421,7 +481,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               filmed: false,
               posted_date: null,
               platform: null,
-              lore_text: figure.notes || null,
+              lore_text: figure.lore_text || figure.notes || null,
               curator_interpretation: null,
               engineer_assessment: null,
               biologist_assessment: null,
