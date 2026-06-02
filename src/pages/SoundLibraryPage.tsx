@@ -402,6 +402,7 @@ export function SoundLibraryPage() {
             <>
               <div className="font-mono text-[10px] text-[#5a6175] tracking-widest">
                 {searchResults.count} RESULTS — SHOWING {searchResults.results.length}
+                <span className="ml-2 text-[#3d4352]">· CC0 · MAX 30S</span>
                 {!selectedSound && (
                   <span className="ml-2 text-[#3d4352]">· select a sound on the left to link</span>
                 )}
