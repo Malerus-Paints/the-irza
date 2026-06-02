@@ -8,6 +8,53 @@ import {
 } from '../types'
 import type { FreesoundResult } from '../lib/api'
 
+const SEARCH_TERMS: Record<string, string[]> = {
+  // FACILITY BED
+  'Institutional Hum': ['electrical hum loop', 'industrial drone ambient', 'machine room hum', 'power grid buzz'],
+  'Resonant Drone': ['resonant drone loop', 'dark ambient drone', 'metallic resonance', 'deep space drone'],
+  'Cyberpunk Ambient Loop': ['cyberpunk ambience loop', 'sci-fi city ambient', 'futuristic hum background', 'neon city drone'],
+  'Ritual Drone': ['ritual drone dark ambient', 'ceremonial ominous hum', 'horror drone loop', 'sacred drone low'],
+  'Server Room Ambience': ['server room ambient', 'data center hum loop', 'cooling fan background', 'computer room noise'],
+  'Distant Machinery Hum': ['distant machinery hum', 'industrial background rumble', 'factory far away', 'mechanical low hum'],
+  // SYSTEM UI
+  'Scan Initiation Tone': ['radar sweep scan tone', 'interface scan beep sci-fi', 'scanning initiation', 'sonar ping tone'],
+  'Scan Completion Tone': ['scan complete success beep', 'confirmation tone UI', 'system scan done beep', 'positive beep sci-fi'],
+  'Classification Lock': ['mechanical lock click', 'secure lock beep', 'classify lock sound', 'system lock confirmed'],
+  'Classification Update / Reclassify': ['data update notification beep', 'reclassify transition tone', 'system update UI', 'digital chime update'],
+  'Data Processing Loop': ['data processing loop', 'computing digital loop', 'CPU processing hum', 'circuit processing sound'],
+  'System Alert': ['system alert warning beep', 'sci-fi interface alert', 'warning alarm short', 'critical alert tone'],
+  'Instability Alert': ['instability warning alarm', 'error glitch alert', 'system failure warning', 'critical error tone'],
+  'UI Element Appear': ['UI appear whoosh', 'interface element popup', 'digital appear sound', 'hologram appear'],
+  'UI Element Dismiss': ['UI dismiss close sound', 'interface element disappear', 'popup close sound', 'digital dismiss'],
+  'Data Input / Typing': ['mechanical keyboard typing', 'sci-fi data input clicks', 'computer terminal type', 'digital keystrokes loop'],
+  // GLITCH / INSTABILITY
+  'Signal Flutter': ['signal flutter subtle', 'radio static flutter low', 'digital flutter interference', 'transmission flicker'],
+  'Data Corruption Tick': ['data corruption tick', 'digital tick glitch', 'bit error click sound', 'corrupted signal tick'],
+  'Short Glitch Burst': ['glitch burst short', 'digital glitch medium', 'corrupted audio burst', 'signal glitch hit'],
+  'Audio Dropout': ['audio dropout glitch', 'signal dropout cut', 'transmission dropout', 'audio cut stutter'],
+  'Pitch Shift Glitch': ['pitch shift glitch', 'voice pitch distort', 'audio pitch bend glitch', 'digital pitch warp'],
+  'Extended Corruption': ['extended audio corruption', 'heavy glitch sustained', 'signal corruption long', 'digital breakdown loop'],
+  'System Stutter Loop': ['system stutter loop', 'audio stutter glitch loop', 'digital stammer repeat', 'interface stutter'],
+  'Full Signal Collapse': ['signal collapse audio', 'full system failure sound', 'transmission collapse', 'catastrophic glitch'],
+  // TRANSITIONS
+  'Facility Power-On': ['power on startup machine', 'system boot up sound', 'facility power on', 'machine startup hum'],
+  'Hard Cut Whoosh': ['whoosh sharp cinematic', 'hard cut transition whoosh', 'air whoosh fast', 'swipe whoosh hit'],
+  'Archive Access Tone': ['access granted tone', 'vault open beep', 'archive access sound', 'clearance granted chime'],
+  'Signal Lock': ['signal lock acquired', 'frequency lock beep', 'lock on acquired tone', 'signal locked sound'],
+  'Fade to Static': ['static noise fade', 'TV static white noise', 'signal to static noise', 'white noise hiss'],
+  'Deep Thud / Impact': ['deep bass thud impact', 'cinematic low hit', 'sub bass impact thump', 'low frequency hit'],
+  // CHARACTER SIGNATURES
+  'Curator Presence Tone': ['warm resonant chime tone', 'elegant presence bell', 'subtle arrival tone soft', 'glass harmonic tone'],
+  'System Activation': ['computer system activation', 'AI terminal boot tone', 'system online beep', 'machine intelligence startup'],
+  'Muscle Foley': ['heavy armor footstep', 'muscular movement foley', 'heavy body armor shift', 'soldier movement foley'],
+  'Copycat Feed Interrupt': ['signal interrupt glitch', 'transmission hijack static', 'unauthorized signal burst', 'feed cut interrupt'],
+  // ANOMALY / THREAT
+  'Low Threat Presence': ['low ominous presence', 'subtle horror ambient tone', 'creature distant subtle', 'unsettling low tone'],
+  'Medium Threat Vocalization': ['creature vocalization alien', 'alien sound medium', 'monster call medium', 'threat vocalization sci-fi'],
+  'High Threat Environmental Response': ['high threat alarm response', 'danger environmental heavy', 'emergency ambient intense', 'threat alarm surge'],
+  'Reality Signature Sound': ['dimensional rift sound', 'reality tear effect', 'portal anomaly sound', 'dimensional collapse effect'],
+}
+
 const INTENSITY_COLORS: Record<string, string> = {
   Low: 'text-[#7bc47a]',
   Medium: 'text-[#e8b84b]',
@@ -175,12 +222,14 @@ export function SoundLibraryPage() {
 
   function handleSelectSound(sound: Sound) {
     setSelectedId(sound.id)
-    const query = sound.name
-    setSearchQuery(query)
+    setSearchQuery(sound.name)
+    setActiveQuery('')
   }
 
-  function handleSearch() {
-    setActiveQuery(searchQuery.trim())
+  function handleSearch(q?: string) {
+    const query = (q ?? searchQuery).trim()
+    setSearchQuery(query)
+    setActiveQuery(query)
   }
 
   async function handleLink(result: FreesoundResult) {
@@ -308,13 +357,33 @@ export function SoundLibraryPage() {
               className="flex-1 bg-[#111318] border border-[#1c1f26] rounded-lg px-4 py-2.5 font-mono text-xs text-[#dde0e6] placeholder-[#3d4352] focus:outline-none focus:border-[#66ff99]/40 disabled:opacity-40"
             />
             <button
-              onClick={handleSearch}
+              onClick={() => handleSearch()}
               disabled={!hasApiKey || !searchQuery.trim()}
               className="px-4 py-2.5 rounded-lg bg-[#66ff99]/10 border border-[#66ff99]/30 font-mono text-xs text-[#66ff99] tracking-widest hover:bg-[#66ff99]/20 transition-colors disabled:opacity-40"
             >
               SEARCH
             </button>
           </div>
+
+          {/* Search term suggestions */}
+          {selectedSound && SEARCH_TERMS[selectedSound.name] && (
+            <div className="flex flex-wrap gap-1.5">
+              {SEARCH_TERMS[selectedSound.name].map((term) => (
+                <button
+                  key={term}
+                  onClick={() => handleSearch(term)}
+                  disabled={!hasApiKey}
+                  className={`font-mono text-[10px] px-2.5 py-1 rounded border transition-colors disabled:opacity-40 ${
+                    activeQuery === term
+                      ? 'bg-[#66ff99]/15 border-[#66ff99]/40 text-[#66ff99]'
+                      : 'bg-[#111318] border-[#1c1f26] text-[#5a6175] hover:border-[#2a2f3a] hover:text-[#8891a4]'
+                  }`}
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Results */}
           {isFetching && (
