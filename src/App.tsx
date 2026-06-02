@@ -12,6 +12,7 @@ import { AnomaliesPage } from './pages/AnomaliesPage'
 import { EpisodesPage } from './pages/EpisodesPage'
 import { LoreGeneratorPage } from './pages/LoreGeneratorPage'
 import { SearchPage } from './pages/SearchPage'
+import { ScriptWorkspacePage } from './pages/ScriptWorkspacePage'
 
 export default function App() {
   const { user, setUser } = useAuthStore()
@@ -59,6 +60,7 @@ export default function App() {
               <Route path="/episodes" element={<EpisodesPage />} />
               <Route path="/lore" element={<LoreGeneratorPage />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/script" element={<ScriptWorkspacePage />} />
             </Routes>
           </div>
         </main>
