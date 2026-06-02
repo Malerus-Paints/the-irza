@@ -300,13 +300,20 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
       return result
     }
 
-    // Get next faction_id
+    // Get next faction_id and squad_id (before army loop)
     const { data: existingFactions } = await supabase.from('factions').select('faction_id').order('faction_id', { ascending: false }).limit(1)
     let nextFactionNum = 1
     if (existingFactions && existingFactions.length > 0) {
       const lastId = existingFactions[0].faction_id
       const match = lastId.match(/F-(\d+)/)
       if (match) nextFactionNum = parseInt(match[1]) + 1
+    }
+
+    const { data: existingSquads } = await supabase.from('squads').select('squad_id').order('squad_id', { ascending: false }).limit(1)
+    let nextSquadNum = 1
+    if (existingSquads && existingSquads.length > 0) {
+      const match = existingSquads[0].squad_id.match(/S-(\d+)/)
+      if (match) nextSquadNum = parseInt(match[1]) + 1
     }
 
     // Process each army
@@ -349,65 +356,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           nextFactionNum++
         }
 
-        // Fetch groups for this army and create as squads
-        const { data: groups, error: groupsError } = await paintingLibSupabase
-          .from('groups')
-          .select('id, name')
-          .eq('army_id', army.id)
-
-        if (groupsError) {
-          result.errors.push({
-            army_name: army.name,
-            error: `Failed to fetch groups: ${groupsError.message}`,
-          })
-        }
-
-        if (groups && groups.length > 0) {
-          const { data: existingSquads } = await supabase.from('squads').select('squad_id').order('squad_id', { ascending: false }).limit(1)
-          let nextSquadNum = 1
-          if (existingSquads && existingSquads.length > 0) {
-            const match = existingSquads[0].squad_id.match(/S-(\d+)/)
-            if (match) nextSquadNum = parseInt(match[1]) + 1
-          }
-
-          for (const group of groups) {
-            try {
-              const groupMinitrackId = `minitrack:group:${group.id}`
-              const { data: existingSquad } = await supabase
-                .from('squads')
-                .select('id')
-                .eq('drive_doc_id', groupMinitrackId)
-                .limit(1)
-
-              if (!existingSquad || existingSquad.length === 0) {
-                const squadNum = String(nextSquadNum).padStart(3, '0')
-                await createSquad({
-                  squad_id: `S-${squadNum}`,
-                  name: group.name,
-                  faction_id: factionId,
-                  squad_role: 'UNKNOWN',
-                  domain: null,
-                  threat_level: null,
-                  collective_behavior_type: null,
-                  system_status: 'MONITORING',
-                  lore_text: null,
-                  drive_doc_id: groupMinitrackId,
-                  drive_doc_url: null,
-                  status: 'drafted',
-                })
-                result.squads_created++
-                nextSquadNum++
-              }
-            } catch (groupErr) {
-              result.errors.push({
-                group_name: group.name,
-                error: `Failed to create squad: ${extractErrorMessage(groupErr)}`,
-              })
-            }
-          }
-        }
-
-        // Fetch figures for this army via figure_armies junction
+        // Fetch all figures for this army via figure_armies junction
         const { data: figureArmies, error: figureArmiesError } = await paintingLibSupabase
           .from('figure_armies')
           .select('figure_id')
@@ -425,11 +374,11 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           continue
         }
 
-        // Fetch figure details
+        // Fetch figure details — is_group splits into squads vs exhibits
         const figureIds = figureArmies.map((fa) => fa.figure_id)
         const { data: figures, error: figuresError } = await paintingLibSupabase
           .from('figures')
-          .select('id, name, status, base_size_mm, points_cost, notes, is_group, lore_text')
+          .select('id, name, status, base_size_mm, notes, lore, is_group')
           .in('id', figureIds)
 
         if (figuresError) {
@@ -440,12 +389,52 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           continue
         }
 
-        // Create exhibits for each figure (skip if already synced)
-        for (const figure of figures || []) {
+        const allFigures = figures || []
+        const groups = allFigures.filter((f) => f.is_group)
+        const exhibits = allFigures.filter((f) => !f.is_group)
+
+        // Create squads from is_group figures
+        for (const group of groups) {
+          try {
+            const groupMinitrackId = `minitrack:${group.id}`
+            const { data: existingSquad } = await supabase
+              .from('squads')
+              .select('id')
+              .eq('drive_doc_id', groupMinitrackId)
+              .limit(1)
+
+            if (!existingSquad || existingSquad.length === 0) {
+              const squadNum = String(nextSquadNum).padStart(3, '0')
+              await createSquad({
+                squad_id: `S-${squadNum}`,
+                name: group.name,
+                faction_id: factionId,
+                squad_role: 'UNKNOWN',
+                domain: null,
+                threat_level: null,
+                collective_behavior_type: null,
+                system_status: 'MONITORING',
+                lore_text: group.lore || group.notes || null,
+                drive_doc_id: groupMinitrackId,
+                drive_doc_url: null,
+                status: 'drafted',
+              })
+              result.squads_created++
+              nextSquadNum++
+            }
+          } catch (groupErr) {
+            result.errors.push({
+              group_name: group.name,
+              error: `Failed to create squad: ${extractErrorMessage(groupErr)}`,
+            })
+          }
+        }
+
+        // Create exhibits from non-group figures
+        for (const figure of exhibits) {
           try {
             const minitrackId = `minitrack:${figure.id}`
 
-            // Check if exhibit already exists for this figure
             const { data: existing } = await supabase
               .from('exhibits')
               .select('id')
@@ -453,10 +442,9 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               .limit(1)
 
             if (existing && existing.length > 0) {
-              continue // already imported, skip
+              continue
             }
 
-            // Map figure status to exhibit status
             let exhibitStatus: EntryStatus = 'drafted'
             if (figure.status === 'complete' || figure.status === 'display') {
               exhibitStatus = 'needs-lore'
@@ -481,7 +469,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               filmed: false,
               posted_date: null,
               platform: null,
-              lore_text: figure.lore_text || figure.notes || null,
+              lore_text: figure.lore || figure.notes || null,
               curator_interpretation: null,
               engineer_assessment: null,
               biologist_assessment: null,
@@ -494,17 +482,16 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
 
             result.figures_created++
           } catch (figureErr) {
-            const error = extractErrorMessage(figureErr)
             result.errors.push({
               figure_name: figure.name,
-              error: `Failed to create exhibit: ${error}`,
+              error: `Failed to create exhibit: ${extractErrorMessage(figureErr)}`,
             })
           }
         }
 
-        // Update faction's exhibits_catalogued count
+        // Update faction's exhibits_catalogued count (groups excluded)
         await updateFaction(factionId, {
-          exhibits_catalogued: (figures || []).length,
+          exhibits_catalogued: exhibits.length,
         })
       } catch (armyErr) {
         const error = extractErrorMessage(armyErr)
