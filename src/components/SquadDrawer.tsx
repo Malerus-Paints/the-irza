@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useCreateSquad, useUpdateSquad, useDeleteSquad, useFactions } from '../hooks/useData'
-import { Button } from './ui'
+import { useCreateSquad, useUpdateSquad, useDeleteSquad, useFactions, useExhibits } from '../hooks/useData'
+import { Button, ThreatBadge } from './ui'
 import type { Squad, EntryStatus, ThreatLevel } from '../types'
 
 type SquadRole = 'VANGUARD' | 'RECON' | 'HEAVY' | 'RITUAL' | 'COMMAND' | 'SUPPORT' | 'UNKNOWN'
@@ -60,6 +60,8 @@ export function SquadDrawer({ squad, onClose }: Props) {
   const updateSquad = useUpdateSquad()
   const deleteSquad = useDeleteSquad()
   const { data: factions = [] } = useFactions()
+  const { data: allExhibits = [] } = useExhibits()
+  const members = squad ? allExhibits.filter((e) => e.squad_id === squad.id) : []
 
   const isPending = createSquad.isPending || updateSquad.isPending || deleteSquad.isPending
   const isEdit = !!squad
@@ -202,6 +204,30 @@ export function SquadDrawer({ squad, onClose }: Props) {
               <TextArea value={form.lore_text} onChange={(v) => set('lore_text', v)} placeholder="Full squad lore record..." rows={6} />
             </Field>
           </Section>
+
+          {isEdit && (
+            <Section label={`MEMBERS — ${members.length}`}>
+              {members.length === 0 ? (
+                <div className="font-mono text-[10px] text-[#3d4352] tracking-widest py-1">
+                  NO EXHIBITS ASSIGNED TO THIS SQUAD
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {members.map((exhibit) => (
+                    <div key={exhibit.id} className="flex items-center gap-3 bg-[#111318] border border-[#1c1f26] rounded px-3 py-2">
+                      <div className="font-mono text-[10px] text-[#3d4352] w-12 shrink-0">
+                        {exhibit.exhibit_number ? `#${exhibit.exhibit_number}` : '—'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-sans text-xs text-[#dde0e6] truncate">{exhibit.name}</div>
+                      </div>
+                      <ThreatBadge level={exhibit.threat_level} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Section>
+          )}
 
         </div>
 

@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useSquads } from '../hooks/useData'
+import { useSquads, useExhibits } from '../hooks/useData'
 import { Spinner, EmptyState, PageHeader, StatusBadge, ThreatBadge, Card, Button } from '../components/ui'
 import { SquadDrawer } from '../components/SquadDrawer'
 import type { Squad } from '../types'
 
 export function SquadsPage() {
   const { data: squads = [], isLoading } = useSquads()
+  const { data: exhibits = [] } = useExhibits()
   const [search, setSearch] = useState('')
   const [drawer, setDrawer] = useState<Squad | null | 'new'>(undefined as never)
 
@@ -52,6 +53,9 @@ export function SquadsPage() {
                     {squad.faction?.name ?? 'NO FACTION'} · {squad.squad_role}
                   </div>
                 </div>
+                <span className="font-mono text-[10px] text-[#3d4352] tracking-widest shrink-0">
+                  {exhibits.filter((e) => e.squad_id === squad.id).length} MEMBERS
+                </span>
                 <ThreatBadge level={squad.threat_level} />
                 <StatusBadge status={squad.status} />
               </div>
