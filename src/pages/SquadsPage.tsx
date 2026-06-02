@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { useSquads } from '../hooks/useData'
 import { Spinner, EmptyState, PageHeader, StatusBadge, ThreatBadge, Card, Button } from '../components/ui'
+import { SquadDrawer } from '../components/SquadDrawer'
+import type { Squad } from '../types'
 
 export function SquadsPage() {
   const { data: squads = [], isLoading } = useSquads()
   const [search, setSearch] = useState('')
+  const [drawer, setDrawer] = useState<Squad | null | 'new'>(undefined as never)
 
   const filtered = squads.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -18,7 +21,7 @@ export function SquadsPage() {
       <PageHeader
         title="SQUAD REGISTRY"
         subtitle="COLLECTIVE BEHAVIORAL SYSTEMS — LINKED TO FACTION REGISTRY"
-        action={<Button size="sm">+ NEW SQUAD</Button>}
+        action={<Button size="sm" onClick={() => setDrawer('new')}>+ NEW SQUAD</Button>}
       />
 
       <div className="mb-5">
@@ -40,7 +43,7 @@ export function SquadsPage() {
       ) : (
         <div className="space-y-2">
           {filtered.map((squad) => (
-            <Card key={squad.id} className="hover:border-[#2a2e38] transition-colors">
+            <Card key={squad.id} className="hover:border-[#2a2e38] transition-colors cursor-pointer" onClick={() => setDrawer(squad)}>
               <div className="flex items-center gap-4">
                 <div className="font-mono text-xs text-[#3d4352] w-14 shrink-0">{squad.squad_id}</div>
                 <div className="flex-1 min-w-0">
@@ -55,6 +58,13 @@ export function SquadsPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {drawer !== undefined && (
+        <SquadDrawer
+          squad={drawer === 'new' ? null : drawer}
+          onClose={() => setDrawer(undefined as never)}
+        />
       )}
     </div>
   )
