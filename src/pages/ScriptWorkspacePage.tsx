@@ -164,8 +164,15 @@ export function ScriptWorkspacePage() {
                   : 'border-transparent hover:bg-[#1c1f26]/60 text-[#8891a4]'
               }`}
             >
-              <div className="font-mono text-[10px] tracking-widest mb-0.5" style={{ color: STATUS_COLORS[ep.status].split(' ')[0].replace('text-[', '').replace(']', '') }}>
-                EP {ep.episode_number ?? '—'}
+              <div className="flex items-center gap-2 mb-0.5">
+                <div className="font-mono text-[10px] tracking-widest" style={{ color: STATUS_COLORS[ep.status].split(' ')[0].replace('text-[', '').replace(']', '') }}>
+                  EP {ep.episode_number ?? '—'}
+                </div>
+                {ep.episode_type && (
+                  <div className="font-mono text-[8px] tracking-widest px-1.5 py-0.5 rounded border border-[#1c1f26] text-[#5a6175] bg-[#111318]">
+                    {ep.episode_type.toUpperCase().replace('_', ' ')}
+                  </div>
+                )}
               </div>
               <div className="font-sans text-xs truncate leading-tight">
                 {ep.title}
