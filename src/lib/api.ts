@@ -451,7 +451,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
         const figureIds = figureArmies.map((fa) => fa.figure_id)
         const { data: figures, error: figuresError } = await paintingLibSupabase
           .from('figures')
-          .select('id, name, status, base_size_mm, notes, lore, is_group')
+          .select('id, name, status, base_size_mm, notes, lore, is_group, scheme_summary')
           .in('id', figureIds)
 
         if (figuresError) {
@@ -538,7 +538,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               threat_level: null,
               behavioral_pattern: null,
               miniature_name: figure.name,
-              paint_scheme: null,
+              paint_scheme: (figure as any).scheme_summary || null,
               base_size: figure.base_size_mm ? `${figure.base_size_mm}mm` : null,
               episode_type: null,
               runtime_class: null,
