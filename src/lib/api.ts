@@ -449,21 +449,10 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
 
         // Fetch figure details — is_group splits into squads vs exhibits
         const figureIds = figureArmies.map((fa) => fa.figure_id)
-        // Try to fetch with scheme_summary; if it fails, query without it
-        let { data: figures, error: figuresError } = await paintingLibSupabase
+        const { data: figures, error: figuresError } = await paintingLibSupabase
           .from('figures')
-          .select('id, name, status, base_size_mm, notes, lore, is_group, scheme_summary')
+          .select('*')
           .in('id', figureIds)
-
-        // Fallback: if scheme_summary doesn't exist, query without it
-        if (figuresError && figuresError.message.includes('scheme_summary')) {
-          const fallback = await paintingLibSupabase
-            .from('figures')
-            .select('id, name, status, base_size_mm, notes, lore, is_group')
-            .in('id', figureIds)
-          figures = fallback.data
-          figuresError = fallback.error
-        }
 
         if (figuresError) {
           result.errors.push({
