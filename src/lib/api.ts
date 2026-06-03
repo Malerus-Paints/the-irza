@@ -313,7 +313,9 @@ export async function searchFreesound(query: string): Promise<FreesoundResponse>
 
 export interface SyncResult {
   armies_created: number
+  armies_updated: number
   squads_created: number
+  squads_updated: number
   figures_created: number
   figures_updated: number
   errors: { army_name?: string; group_name?: string; figure_name?: string; error: string }[]
@@ -334,7 +336,9 @@ function extractErrorMessage(err: unknown): string {
 export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Promise<SyncResult> {
   const result: SyncResult = {
     armies_created: 0,
+    armies_updated: 0,
     squads_created: 0,
+    squads_updated: 0,
     figures_created: 0,
     figures_updated: 0,
     errors: [],
@@ -390,23 +394,30 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           .eq('drive_doc_id', armyMinitrackId)
           .limit(1)
 
+        const factionPayload = {
+          name: army.name,
+          system_status: army.game_system || 'UNCLASSIFIED',
+          lore_text: army.description || null,
+        }
+
         let factionId: string
         if (existingFaction && existingFaction.length > 0) {
+          // Update existing faction with latest data from MiniCodex
           factionId = existingFaction[0].id
+          await updateFaction(factionId, factionPayload)
+          result.armies_updated++
         } else {
           // Create new faction
           const factionNum = String(nextFactionNum).padStart(3, '0')
           const newFaction = await createFaction({
             faction_id: `F-${factionNum}`,
-            name: army.name,
+            ...factionPayload,
             domain: null,
             threat_level: null,
             behavioral_classification: null,
             collective_or_individual: null,
-            system_status: army.game_system || 'UNCLASSIFIED',
             exhibits_catalogued: 0,
             origin_reality_status: 'unknown',
-            lore_text: army.description || null,
             drive_doc_id: armyMinitrackId,
             drive_doc_url: null,
             notes: null,
@@ -455,7 +466,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
         const groups = allFigures.filter((f) => f.is_group)
         const exhibits = allFigures.filter((f) => !f.is_group)
 
-        // Create squads from is_group figures
+        // Create or update squads from is_group figures
         for (const group of groups) {
           try {
             const groupMinitrackId = `minitrack:${group.id}`
@@ -465,18 +476,27 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               .eq('drive_doc_id', groupMinitrackId)
               .limit(1)
 
-            if (!existingSquad || existingSquad.length === 0) {
+            const squadPayload = {
+              name: group.name,
+              faction_id: factionId,
+              system_status: 'MONITORING',
+              lore_text: group.lore || group.notes || null,
+            }
+
+            if (existingSquad && existingSquad.length > 0) {
+              // Update existing squad with latest data from MiniCodex
+              await updateSquad(existingSquad[0].id, squadPayload)
+              result.squads_updated++
+            } else {
+              // Create new squad
               const squadNum = String(nextSquadNum).padStart(3, '0')
               await createSquad({
                 squad_id: `S-${squadNum}`,
-                name: group.name,
-                faction_id: factionId,
+                ...squadPayload,
                 squad_role: 'UNKNOWN',
                 domain: null,
                 threat_level: null,
                 collective_behavior_type: null,
-                system_status: 'MONITORING',
-                lore_text: group.lore || group.notes || null,
                 drive_doc_id: groupMinitrackId,
                 drive_doc_url: null,
                 status: 'drafted',
@@ -487,7 +507,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           } catch (groupErr) {
             result.errors.push({
               group_name: group.name,
-              error: `Failed to create squad: ${extractErrorMessage(groupErr)}`,
+              error: `Failed to sync squad: ${extractErrorMessage(groupErr)}`,
             })
           }
         }
