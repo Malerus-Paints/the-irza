@@ -50,6 +50,14 @@ export function LoreGeneratorPage() {
         .replace('{{collective_behavior_type}}', selectedSquad.collective_behavior_type ?? 'UNKNOWN')
     }
 
+    // Auto-inject miniature details if exhibit is selected
+    if (selectedExhibit) {
+      prompt = prompt
+        .replace('{{miniature_name}}', selectedExhibit.miniature_name ?? 'UNDESIGNATED')
+        .replace('{{paint_scheme}}', selectedExhibit.paint_scheme ?? 'Paint scheme undocumented')
+        .replace('{{base_size}}', selectedExhibit.base_size ?? 'Base size unknown')
+    }
+
     // Inject custom fields
     Object.entries(customFields).forEach(([key, value]) => {
       prompt = prompt.replace(`{{${key}}}`, value)
@@ -124,6 +132,16 @@ export function LoreGeneratorPage() {
                       {selectedExhibit.faction?.faction_id} — {selectedExhibit.faction?.name}
                       {selectedExhibit.squad_id && selectedSquad && ` · SQUAD ${selectedSquad.squad_id}`}
                     </div>
+                    {selectedExhibit.paint_scheme && (
+                      <div className="font-mono text-[10px] text-[#3d4352] pt-1">
+                        PAINT: {selectedExhibit.paint_scheme}
+                      </div>
+                    )}
+                    {selectedExhibit.base_size && (
+                      <div className="font-mono text-[10px] text-[#3d4352]">
+                        BASE: {selectedExhibit.base_size}
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>
@@ -172,7 +190,8 @@ export function LoreGeneratorPage() {
               {(selectedTemplate.context_fields ?? [])
                 .filter((f) => !['faction_name', 'domain', 'threat_level', 'faction_lore',
                   'behavioral_classification', 'collective_or_individual', 'origin_reality_status', 'notes',
-                  'squad_name', 'squad_role', 'squad_lore', 'squad_threat_level', 'collective_behavior_type'].includes(f))
+                  'squad_name', 'squad_role', 'squad_lore', 'squad_threat_level', 'collective_behavior_type',
+                  'miniature_name', 'paint_scheme', 'base_size'].includes(f))
                 .length > 0 && (
                 <Card>
                   <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">REQUIRED FIELDS</h2>
@@ -180,7 +199,8 @@ export function LoreGeneratorPage() {
                     {(selectedTemplate.context_fields ?? [])
                       .filter((f) => !['faction_name', 'domain', 'threat_level', 'faction_lore',
                         'behavioral_classification', 'collective_or_individual', 'origin_reality_status', 'notes',
-                        'squad_name', 'squad_role', 'squad_lore', 'squad_threat_level', 'collective_behavior_type'].includes(f))
+                        'squad_name', 'squad_role', 'squad_lore', 'squad_threat_level', 'collective_behavior_type',
+                        'miniature_name', 'paint_scheme', 'base_size'].includes(f))
                       .map((field) => (
                         <div key={field} className="flex flex-col gap-1">
                           <label className="font-mono text-[10px] tracking-widest text-[#5a6175]">
