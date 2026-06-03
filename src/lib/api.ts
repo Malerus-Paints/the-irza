@@ -449,10 +449,21 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
 
         // Fetch figure details — is_group splits into squads vs exhibits
         const figureIds = figureArmies.map((fa) => fa.figure_id)
-        const { data: figures, error: figuresError } = await paintingLibSupabase
+        // Try to fetch with scheme_summary; if it fails, query without it
+        let { data: figures, error: figuresError } = await paintingLibSupabase
           .from('figures')
           .select('id, name, status, base_size_mm, notes, lore, is_group, scheme_summary')
           .in('id', figureIds)
+
+        // Fallback: if scheme_summary doesn't exist, query without it
+        if (figuresError && figuresError.message.includes('scheme_summary')) {
+          const fallback = await paintingLibSupabase
+            .from('figures')
+            .select('id, name, status, base_size_mm, notes, lore, is_group')
+            .in('id', figureIds)
+          figures = fallback.data
+          figuresError = fallback.error
+        }
 
         if (figuresError) {
           result.errors.push({
@@ -528,6 +539,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               exhibitStatus = 'needs-lore'
             }
 
+            const figureData = figure as any
             const exhibitData = {
               exhibit_number: null as string | null,
               name: figure.name,
@@ -538,7 +550,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               threat_level: null,
               behavioral_pattern: null,
               miniature_name: figure.name,
-              paint_scheme: (figure as any).scheme_summary || null,
+              paint_scheme: figureData.scheme_summary ? String(figureData.scheme_summary).trim() : null,
               base_size: figure.base_size_mm ? `${figure.base_size_mm}mm` : null,
               episode_type: null,
               runtime_class: null,
