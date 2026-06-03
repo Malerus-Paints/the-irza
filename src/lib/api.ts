@@ -451,8 +451,13 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
         const figureIds = figureArmies.map((fa) => fa.figure_id)
         const { data: figures, error: figuresError } = await paintingLibSupabase
           .from('figures')
-          .select('*')
+          .select('id, name, status, base_size_mm, notes, lore, is_group, scheme_summary')
           .in('id', figureIds)
+
+        // Log for debugging
+        if (figures && figures.length > 0) {
+          console.log('Sample figure data:', figures[0])
+        }
 
         if (figuresError) {
           result.errors.push({
