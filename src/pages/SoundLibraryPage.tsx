@@ -10,49 +10,163 @@ import type { FreesoundResult } from '../lib/api'
 
 const SEARCH_TERMS: Record<string, string[]> = {
   // FACILITY BED
-  'Institutional Hum': ['electrical hum loop', 'industrial drone ambient', 'machine room hum', 'power grid buzz'],
-  'Resonant Drone': ['resonant drone loop', 'dark ambient drone', 'metallic resonance', 'deep space drone'],
-  'Cyberpunk Ambient Loop': ['cyberpunk ambience loop', 'sci-fi city ambient', 'futuristic hum background', 'neon city drone'],
-  'Ritual Drone': ['ritual drone dark ambient', 'ceremonial ominous hum', 'horror drone loop', 'sacred drone low'],
-  'Server Room Ambience': ['server room ambient', 'data center hum loop', 'cooling fan background', 'computer room noise'],
-  'Distant Machinery Hum': ['distant machinery hum', 'industrial background rumble', 'factory far away', 'mechanical low hum'],
+  'Institutional Hum': [
+    'electrical hum loop', 'industrial drone ambient', 'machine room hum', 'power grid buzz',
+    'fluorescent light hum', 'HVAC ambient loop', 'basement electrical hum', 'transformer hum loop',
+  ],
+  'Resonant Drone': [
+    'resonant drone loop', 'dark ambient drone', 'metallic resonance', 'deep space drone',
+    'bass drone sustained', 'cavernous resonance', 'low frequency drone loop', 'tonal drone ambient',
+  ],
+  'Cyberpunk Ambient Loop': [
+    'cyberpunk ambience loop', 'sci-fi city ambient', 'futuristic hum background', 'neon city drone',
+    'dystopian city background', 'electronic city noise loop', 'future urban ambient', 'industrial city drone',
+  ],
+  'Ritual Drone': [
+    'ritual drone dark ambient', 'ceremonial ominous hum', 'horror drone loop', 'sacred drone low',
+    'dark ceremonial drone', 'ominous bass drone', 'occult ambient drone', 'chant drone loop',
+  ],
+  'Server Room Ambience': [
+    'server room ambient', 'data center hum loop', 'cooling fan background', 'computer room noise',
+    'rack server hum', 'blade server ambient', 'network equipment hum', 'UPS fan noise',
+  ],
+  'Distant Machinery Hum': [
+    'distant machinery hum', 'industrial background rumble', 'factory far away', 'mechanical low hum',
+    'engine room ambient', 'ship engine distant', 'industrial rumble background', 'factory floor ambient',
+  ],
   // SYSTEM UI
-  'Scan Initiation Tone': ['radar sweep scan tone', 'interface scan beep sci-fi', 'scanning initiation', 'sonar ping tone'],
-  'Scan Completion Tone': ['scan complete success beep', 'confirmation tone UI', 'system scan done beep', 'positive beep sci-fi'],
-  'Classification Lock': ['mechanical lock click', 'secure lock beep', 'classify lock sound', 'system lock confirmed'],
-  'Classification Update / Reclassify': ['data update notification beep', 'reclassify transition tone', 'system update UI', 'digital chime update'],
-  'Data Processing Loop': ['data processing loop', 'computing digital loop', 'CPU processing hum', 'circuit processing sound'],
-  'System Alert': ['system alert warning beep', 'sci-fi interface alert', 'warning alarm short', 'critical alert tone'],
-  'Instability Alert': ['instability warning alarm', 'error glitch alert', 'system failure warning', 'critical error tone'],
-  'UI Element Appear': ['UI appear whoosh', 'interface element popup', 'digital appear sound', 'hologram appear'],
-  'UI Element Dismiss': ['UI dismiss close sound', 'interface element disappear', 'popup close sound', 'digital dismiss'],
-  'Data Input / Typing': ['mechanical keyboard typing', 'sci-fi data input clicks', 'computer terminal type', 'digital keystrokes loop'],
+  'Scan Initiation Tone': [
+    'radar sweep scan tone', 'interface scan beep sci-fi', 'scanning initiation', 'sonar ping tone',
+    'medical scan beep', 'lidar scan sound', 'sensor activation tone', 'barcode scanner beep',
+  ],
+  'Scan Completion Tone': [
+    'scan complete success beep', 'confirmation tone UI', 'system scan done beep', 'positive beep sci-fi',
+    'success notification tone', 'task complete beep', 'digital confirmation chime', 'affirmative tone short',
+  ],
+  'Classification Lock': [
+    'mechanical lock click', 'secure lock beep', 'classify lock sound', 'system lock confirmed',
+    'database commit sound', 'file locked beep', 'stamp seal sound', 'iron lock click',
+  ],
+  'Classification Update / Reclassify': [
+    'data update notification beep', 'reclassify transition tone', 'system update UI', 'digital chime update',
+    'status change beep', 'record update sound', 'notification ping update', 'case reclassified tone',
+  ],
+  'Data Processing Loop': [
+    'data processing loop', 'computing digital loop', 'CPU processing hum', 'circuit processing sound',
+    'hard drive activity loop', 'modem data processing', 'digital ticker loop', 'computer thinking loop',
+  ],
+  'System Alert': [
+    'system alert warning beep', 'sci-fi interface alert', 'warning alarm short', 'critical alert tone',
+    'alarm beep warning', 'emergency alert tone', 'klaxon beep short', 'red alert beep',
+  ],
+  'Instability Alert': [
+    'instability warning alarm', 'error glitch alert', 'system failure warning', 'critical error tone',
+    'malfunction alarm beep', 'system instability alert', 'danger alert electronic', 'failure notification alarm',
+  ],
+  'UI Element Appear': [
+    'UI appear whoosh', 'interface element popup', 'digital appear sound', 'hologram appear',
+    'notification pop sound', 'window appear short', 'element fade in sound', 'card appear sound',
+  ],
+  'UI Element Dismiss': [
+    'UI dismiss close sound', 'interface element disappear', 'popup close sound', 'digital dismiss',
+    'notification dismiss sound', 'close window soft', 'element fade out sound', 'swipe away sound',
+  ],
+  'Data Input / Typing': [
+    'mechanical keyboard typing', 'sci-fi data input clicks', 'computer terminal type', 'digital keystrokes loop',
+    'teletype machine loop', 'matrix typing sound', 'terminal keyboard clatter', 'old computer keyboard',
+  ],
   // GLITCH / INSTABILITY
-  'Signal Flutter': ['signal flutter subtle', 'radio static flutter low', 'digital flutter interference', 'transmission flicker'],
-  'Data Corruption Tick': ['data corruption tick', 'digital tick glitch', 'bit error click sound', 'corrupted signal tick'],
-  'Short Glitch Burst': ['glitch burst short', 'digital glitch medium', 'corrupted audio burst', 'signal glitch hit'],
-  'Audio Dropout': ['audio dropout glitch', 'signal dropout cut', 'transmission dropout', 'audio cut stutter'],
-  'Pitch Shift Glitch': ['pitch shift glitch', 'voice pitch distort', 'audio pitch bend glitch', 'digital pitch warp'],
-  'Extended Corruption': ['extended audio corruption', 'heavy glitch sustained', 'signal corruption long', 'digital breakdown loop'],
-  'System Stutter Loop': ['system stutter loop', 'audio stutter glitch loop', 'digital stammer repeat', 'interface stutter'],
-  'Full Signal Collapse': ['signal collapse audio', 'full system failure sound', 'transmission collapse', 'catastrophic glitch'],
+  'Signal Flutter': [
+    'signal flutter subtle', 'radio static flutter low', 'digital flutter interference', 'transmission flicker',
+    'FM radio interference', 'analog signal wobble', 'frequency drift subtle', 'VHS tracking flutter',
+  ],
+  'Data Corruption Tick': [
+    'data corruption tick', 'digital tick glitch', 'bit error click sound', 'corrupted signal tick',
+    'hard drive click error', 'digital artifact click', 'bit flip sound', 'error tick subtle',
+  ],
+  'Short Glitch Burst': [
+    'glitch burst short', 'digital glitch medium', 'corrupted audio burst', 'signal glitch hit',
+    'video glitch sound', 'electronic glitch hit', 'digital artifact burst', 'codec glitch sound',
+  ],
+  'Audio Dropout': [
+    'audio dropout glitch', 'signal dropout cut', 'transmission dropout', 'audio cut stutter',
+    'packet loss audio', 'digital silence gap', 'audio skip glitch', 'transmission cut out',
+  ],
+  'Pitch Shift Glitch': [
+    'pitch shift glitch', 'voice pitch distort', 'audio pitch bend glitch', 'digital pitch warp',
+    'pitch bend down effect', 'voice formant shift', 'audio warp effect', 'pitch drop glitch',
+  ],
+  'Extended Corruption': [
+    'extended audio corruption', 'heavy glitch sustained', 'signal corruption long', 'digital breakdown loop',
+    'sustained malfunction loop', 'broken signal loop', 'corrupted audio sustained', 'signal decay loop',
+  ],
+  'System Stutter Loop': [
+    'system stutter loop', 'audio stutter glitch loop', 'digital stammer repeat', 'interface stutter',
+    'audio buffer stutter', 'playback stutter glitch', 'CD skip loop', 'digital repeat stutter',
+  ],
+  'Full Signal Collapse': [
+    'signal collapse audio', 'full system failure sound', 'transmission collapse', 'catastrophic glitch',
+    'system crash sound', 'power failure sound', 'complete system shutdown', 'electronic death sound',
+  ],
   // TRANSITIONS
-  'Facility Power-On': ['power on startup machine', 'system boot up sound', 'facility power on', 'machine startup hum'],
-  'Hard Cut Whoosh': ['whoosh sharp cinematic', 'hard cut transition whoosh', 'air whoosh fast', 'swipe whoosh hit'],
-  'Archive Access Tone': ['access granted tone', 'vault open beep', 'archive access sound', 'clearance granted chime'],
-  'Signal Lock': ['signal lock acquired', 'frequency lock beep', 'lock on acquired tone', 'signal locked sound'],
-  'Fade to Static': ['static noise fade', 'TV static white noise', 'signal to static noise', 'white noise hiss'],
-  'Deep Thud / Impact': ['deep bass thud impact', 'cinematic low hit', 'sub bass impact thump', 'low frequency hit'],
+  'Facility Power-On': [
+    'power on startup machine', 'system boot up sound', 'facility power on', 'machine startup hum',
+    'industrial startup sequence', 'generator power on', 'electrical system boot', 'circuit breaker on sound',
+  ],
+  'Hard Cut Whoosh': [
+    'whoosh sharp cinematic', 'hard cut transition whoosh', 'air whoosh fast', 'swipe whoosh hit',
+    'blade whoosh hit', 'transition hit whoosh', 'cut whoosh short', 'impact whoosh cinematic',
+  ],
+  'Archive Access Tone': [
+    'access granted tone', 'vault open beep', 'archive access sound', 'clearance granted chime',
+    'door unlock beep access', 'security clearance granted', 'database access confirmed', 'entry access beep',
+  ],
+  'Signal Lock': [
+    'signal lock acquired', 'frequency lock beep', 'lock on acquired tone', 'signal locked sound',
+    'satellite lock tone', 'GPS lock acquired', 'target lock beep', 'frequency acquisition sound',
+  ],
+  'Fade to Static': [
+    'static noise fade', 'TV static white noise', 'signal to static noise', 'white noise hiss',
+    'television static noise', 'analog TV noise', 'radio static noise', 'white noise short',
+  ],
+  'Deep Thud / Impact': [
+    'deep bass thud impact', 'cinematic low hit', 'sub bass impact thump', 'low frequency hit',
+    'cinematic bass boom', 'low end thump hit', 'subwoofer hit', 'body impact thud',
+  ],
   // CHARACTER SIGNATURES
-  'Curator Presence Tone': ['warm resonant chime tone', 'elegant presence bell', 'subtle arrival tone soft', 'glass harmonic tone'],
-  'System Activation': ['computer system activation', 'AI terminal boot tone', 'system online beep', 'machine intelligence startup'],
-  'Muscle Foley': ['heavy armor footstep', 'muscular movement foley', 'heavy body armor shift', 'soldier movement foley'],
-  'Copycat Feed Interrupt': ['signal interrupt glitch', 'transmission hijack static', 'unauthorized signal burst', 'feed cut interrupt'],
+  'Curator Presence Tone': [
+    'warm resonant chime tone', 'elegant presence bell', 'subtle arrival tone soft', 'glass harmonic tone',
+    'singing bowl gentle', 'crystal glass harmonic', 'soft bell tone presence', 'meditation bowl short',
+  ],
+  'System Activation': [
+    'computer system activation', 'AI terminal boot tone', 'system online beep', 'machine intelligence startup',
+    'mainframe startup sequence', 'computer online confirm', 'AI activate beep', 'HAL computer startup',
+  ],
+  'Muscle Foley': [
+    'heavy armor footstep', 'muscular movement foley', 'heavy body armor shift', 'soldier movement foley',
+    'leather armor creak', 'heavy cloth rustle', 'battle gear foley', 'warrior stance foley',
+  ],
+  'Copycat Feed Interrupt': [
+    'signal interrupt glitch', 'transmission hijack static', 'unauthorized signal burst', 'feed cut interrupt',
+    'broadcast hijack sound', 'pirate signal interrupt', 'channel interference burst', 'unauthorized broadcast',
+  ],
   // ANOMALY / THREAT
-  'Low Threat Presence': ['low ominous presence', 'subtle horror ambient tone', 'creature distant subtle', 'unsettling low tone'],
-  'Medium Threat Vocalization': ['creature vocalization alien', 'alien sound medium', 'monster call medium', 'threat vocalization sci-fi'],
-  'High Threat Environmental Response': ['high threat alarm response', 'danger environmental heavy', 'emergency ambient intense', 'threat alarm surge'],
-  'Reality Signature Sound': ['dimensional rift sound', 'reality tear effect', 'portal anomaly sound', 'dimensional collapse effect'],
+  'Low Threat Presence': [
+    'low ominous presence', 'subtle horror ambient tone', 'creature distant subtle', 'unsettling low tone',
+    'horror atmosphere subtle', 'low frequency dread', 'ominous environmental hum', 'eerie presence tone',
+  ],
+  'Medium Threat Vocalization': [
+    'creature vocalization alien', 'alien sound medium', 'monster call medium', 'threat vocalization sci-fi',
+    'creature breath growl', 'alien creature call', 'monster utterance', 'deep creature moan',
+  ],
+  'High Threat Environmental Response': [
+    'high threat alarm response', 'danger environmental heavy', 'emergency ambient intense', 'threat alarm surge',
+    'containment breach alarm', 'facility emergency klaxon', 'red alert environment', 'crisis ambient surge',
+  ],
+  'Reality Signature Sound': [
+    'dimensional rift sound', 'reality tear effect', 'portal anomaly sound', 'dimensional collapse effect',
+    'wormhole opening sound', 'space time distortion', 'quantum tunnel effect', 'interdimensional sound',
+  ],
 }
 
 const INTENSITY_COLORS: Record<string, string> = {
@@ -402,7 +516,7 @@ export function SoundLibraryPage() {
             <>
               <div className="font-mono text-[10px] text-[#5a6175] tracking-widest">
                 {searchResults.count} RESULTS — SHOWING {searchResults.results.length}
-                <span className="ml-2 text-[#3d4352]">· CC0 · MAX 30S</span>
+                <span className="ml-2 text-[#3d4352]">· CC0 · MAX 60S</span>
                 {!selectedSound && (
                   <span className="ml-2 text-[#3d4352]">· select a sound on the left to link</span>
                 )}

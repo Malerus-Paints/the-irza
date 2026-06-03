@@ -301,7 +301,7 @@ export async function searchFreesound(query: string): Promise<FreesoundResponse>
     token,
     fields: 'id,name,description,tags,duration,license,previews',
     page_size: '12',
-    filter: 'license:"Creative Commons 0" AND duration:[0 TO 30]',
+    filter: 'license:"Creative Commons 0" AND duration:[0 TO 60]',
   })
 
   const res = await fetch(`https://freesound.org/apiv2/search/text/?${params}`)
