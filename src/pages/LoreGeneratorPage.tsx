@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { useLoreTemplates, useFactions } from '../hooks/useData'
+import { useLoreTemplates, useFactions, useSquads, useExhibits } from '../hooks/useData'
 import { Spinner, PageHeader, Card, Button, Textarea, Select } from '../components/ui'
 import type { LoreTemplate } from '../types'
 
 export function LoreGeneratorPage() {
   const { data: templates = [], isLoading: loadingTemplates } = useLoreTemplates()
   const { data: factions = [] } = useFactions()
+  const { data: squads = [] } = useSquads()
+  const { data: exhibits = [] } = useExhibits()
 
   const [selectedTemplate, setSelectedTemplate] = useState<LoreTemplate | null>(null)
+  const [selectedExhibitId, setSelectedExhibitId] = useState('')
   const [selectedFactionId, setSelectedFactionId] = useState('')
   const [customFields, setCustomFields] = useState<Record<string, string>>({})
   const [generatedPrompt, setGeneratedPrompt] = useState('')
@@ -15,7 +18,9 @@ export function LoreGeneratorPage() {
 
   if (loadingTemplates) return <Spinner />
 
-  const selectedFaction = factions.find((f) => f.id === selectedFactionId)
+  const selectedExhibit = exhibits.find((e) => e.id === selectedExhibitId)
+  const selectedFaction = selectedExhibit?.faction ? factions.find((f) => f.id === selectedExhibit.faction?.id) : factions.find((f) => f.id === selectedFactionId)
+  const selectedSquad = selectedExhibit?.squad_id ? squads.find((s) => s.id === selectedExhibit.squad_id) : null
 
   function buildPrompt() {
     if (!selectedTemplate) return
@@ -35,6 +40,16 @@ export function LoreGeneratorPage() {
         .replace('{{notes}}', selectedFaction.notes ?? 'None.')
     }
 
+    // Auto-inject squad context if exhibit belongs to one
+    if (selectedSquad) {
+      prompt = prompt
+        .replace('{{squad_name}}', selectedSquad.name)
+        .replace('{{squad_role}}', selectedSquad.squad_role ?? 'UNKNOWN')
+        .replace('{{squad_lore}}', selectedSquad.lore_text ?? 'No squad lore documented yet.')
+        .replace('{{squad_threat_level}}', selectedSquad.threat_level ?? 'UNKNOWN')
+        .replace('{{collective_behavior_type}}', selectedSquad.collective_behavior_type ?? 'UNKNOWN')
+    }
+
     // Inject custom fields
     Object.entries(customFields).forEach(([key, value]) => {
       prompt = prompt.replace(`{{${key}}}`, value)
@@ -52,6 +67,11 @@ export function LoreGeneratorPage() {
   const templateOptions = [
     { value: '', label: '— SELECT TEMPLATE —' },
     ...templates.map((t) => ({ value: t.id, label: `${t.template_type.toUpperCase()} — ${t.name}` })),
+  ]
+
+  const exhibitOptions = [
+    { value: '', label: '— SELECT EXHIBIT (OPTIONAL) —' },
+    ...exhibits.map((e) => ({ value: e.id, label: `${e.miniature_name} · ${e.faction?.faction_id ?? '?'}` })),
   ]
 
   const factionOptions = [
@@ -87,37 +107,80 @@ export function LoreGeneratorPage() {
           {selectedTemplate && (
             <>
               <Card>
-                <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">FACTION CONTEXT</h2>
+                <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">EXHIBIT CONTEXT</h2>
                 <Select
-                  label="INJECT FACTION"
-                  options={factionOptions}
-                  value={selectedFactionId}
-                  onChange={(e) => setSelectedFactionId(e.target.value)}
+                  label="SELECT EXHIBIT"
+                  options={exhibitOptions}
+                  value={selectedExhibitId}
+                  onChange={(e) => {
+                    setSelectedExhibitId(e.target.value)
+                    setGeneratedPrompt('')
+                  }}
                 />
-                {selectedFaction && (
+                {selectedExhibit && (
                   <div className="mt-3 p-3 bg-[#0a0c10] rounded border border-[#1c1f26] space-y-1">
-                    <div className="font-mono text-[10px] text-[#66ff99] tracking-widest">{selectedFaction.faction_id} — {selectedFaction.name}</div>
+                    <div className="font-mono text-[10px] text-[#66ff99] tracking-widest">{selectedExhibit.miniature_name}</div>
                     <div className="font-mono text-[10px] text-[#5a6175]">
-                      {selectedFaction.domain} · {selectedFaction.threat_level} · {selectedFaction.collective_or_individual}
-                    </div>
-                    <div className="font-mono text-[10px] text-[#3d4352]">
-                      ORIGIN: {selectedFaction.origin_reality_status.toUpperCase()}
+                      {selectedExhibit.faction?.faction_id} — {selectedExhibit.faction?.name}
+                      {selectedExhibit.squad_id && selectedSquad && ` · SQUAD ${selectedSquad.squad_id}`}
                     </div>
                   </div>
                 )}
               </Card>
 
+              {!selectedExhibitId && (
+                <Card>
+                  <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">FACTION CONTEXT</h2>
+                  <Select
+                    label="INJECT FACTION"
+                    options={factionOptions}
+                    value={selectedFactionId}
+                    onChange={(e) => setSelectedFactionId(e.target.value)}
+                  />
+                  {selectedFaction && (
+                    <div className="mt-3 p-3 bg-[#0a0c10] rounded border border-[#1c1f26] space-y-1">
+                      <div className="font-mono text-[10px] text-[#66ff99] tracking-widest">{selectedFaction.faction_id} — {selectedFaction.name}</div>
+                      <div className="font-mono text-[10px] text-[#5a6175]">
+                        {selectedFaction.domain} · {selectedFaction.threat_level} · {selectedFaction.collective_or_individual}
+                      </div>
+                      <div className="font-mono text-[10px] text-[#3d4352]">
+                        ORIGIN: {selectedFaction.origin_reality_status.toUpperCase()}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {selectedSquad && (
+                <Card>
+                  <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">SQUAD CONTEXT</h2>
+                  <div className="p-3 bg-[#0a0c10] rounded border border-[#1c1f26] space-y-1">
+                    <div className="font-mono text-[10px] text-[#66ff99] tracking-widest">{selectedSquad.squad_id} — {selectedSquad.name}</div>
+                    <div className="font-mono text-[10px] text-[#5a6175]">
+                      {selectedSquad.squad_role} · {selectedSquad.threat_level}
+                    </div>
+                    {selectedSquad.lore_text && (
+                      <div className="font-mono text-[10px] text-[#3d4352] mt-2 line-clamp-2">
+                        {selectedSquad.lore_text}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
               {/* Custom field inputs for remaining template variables */}
               {(selectedTemplate.context_fields ?? [])
                 .filter((f) => !['faction_name', 'domain', 'threat_level', 'faction_lore',
-                  'behavioral_classification', 'collective_or_individual', 'origin_reality_status', 'notes'].includes(f))
+                  'behavioral_classification', 'collective_or_individual', 'origin_reality_status', 'notes',
+                  'squad_name', 'squad_role', 'squad_lore', 'squad_threat_level', 'collective_behavior_type'].includes(f))
                 .length > 0 && (
                 <Card>
                   <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">REQUIRED FIELDS</h2>
                   <div className="space-y-3">
                     {(selectedTemplate.context_fields ?? [])
                       .filter((f) => !['faction_name', 'domain', 'threat_level', 'faction_lore',
-                        'behavioral_classification', 'collective_or_individual', 'origin_reality_status', 'notes'].includes(f))
+                        'behavioral_classification', 'collective_or_individual', 'origin_reality_status', 'notes',
+                        'squad_name', 'squad_role', 'squad_lore', 'squad_threat_level', 'collective_behavior_type'].includes(f))
                       .map((field) => (
                         <div key={field} className="flex flex-col gap-1">
                           <label className="font-mono text-[10px] tracking-widest text-[#5a6175]">

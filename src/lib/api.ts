@@ -315,6 +315,7 @@ export interface SyncResult {
   armies_created: number
   squads_created: number
   figures_created: number
+  figures_updated: number
   errors: { army_name?: string; group_name?: string; figure_name?: string; error: string }[]
 }
 
@@ -335,6 +336,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
     armies_created: 0,
     squads_created: 0,
     figures_created: 0,
+    figures_updated: 0,
     errors: [],
   }
 
@@ -490,7 +492,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           }
         }
 
-        // Create exhibits from non-group figures
+        // Create or update exhibits from non-group figures
         for (const figure of exhibits) {
           try {
             const minitrackId = `minitrack:${figure.id}`
@@ -501,19 +503,15 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               .eq('drive_doc_id', minitrackId)
               .limit(1)
 
-            if (existing && existing.length > 0) {
-              continue
-            }
-
             let exhibitStatus: EntryStatus = 'drafted'
             if (figure.status === 'complete' || figure.status === 'display') {
               exhibitStatus = 'needs-lore'
             }
 
-            await createExhibit({
-              exhibit_number: null,
+            const exhibitData = {
+              exhibit_number: null as string | null,
               name: figure.name,
-              archive_status: 'ACTIVE',
+              archive_status: 'ACTIVE' as const,
               faction_id: factionId,
               squad_id: null,
               domain: null,
@@ -533,18 +531,26 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               curator_interpretation: null,
               engineer_assessment: null,
               biologist_assessment: null,
-              origin_reality_status: 'unknown',
+              origin_reality_status: 'unknown' as const,
               backlog_release: false,
               drive_doc_id: minitrackId,
               drive_doc_url: null,
               status: exhibitStatus,
-            })
+            }
 
-            result.figures_created++
+            if (existing && existing.length > 0) {
+              // Update existing exhibit with new data from MiniCodex
+              await updateExhibit(existing[0].id, exhibitData)
+              result.figures_updated++
+            } else {
+              // Create new exhibit
+              await createExhibit(exhibitData)
+              result.figures_created++
+            }
           } catch (figureErr) {
             result.errors.push({
               figure_name: figure.name,
-              error: `Failed to create exhibit: ${extractErrorMessage(figureErr)}`,
+              error: `Failed to sync exhibit: ${extractErrorMessage(figureErr)}`,
             })
           }
         }

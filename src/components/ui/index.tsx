@@ -178,7 +178,7 @@ export function Card({ children, className = '', onClick }: { children: React.Re
 
 interface SyncStatusProps {
   status: 'idle' | 'pending' | 'success' | 'error'
-  result?: { armies_created: number; squads_created: number; figures_created: number; errors: any[] }
+  result?: { armies_created: number; squads_created: number; figures_created: number; figures_updated: number; errors: any[] }
   error?: Error | null
 }
 
@@ -209,7 +209,7 @@ export function SyncStatus({ status, result, error }: SyncStatusProps) {
       <Card className="border-[#66ff99]/20 bg-[#066630]/10">
         <div className="flex flex-col gap-2">
           <p className="font-mono text-sm text-[#66ff99]">
-            ✓ SYNC COMPLETE: {result.armies_created} factions, {result.squads_created} squads, {result.figures_created} exhibits
+            ✓ SYNC COMPLETE: {result.armies_created} factions, {result.squads_created} squads, {result.figures_created} new exhibits, {result.figures_updated} updated
           </p>
           {result.errors.length > 0 && (
             <details className="text-xs">
