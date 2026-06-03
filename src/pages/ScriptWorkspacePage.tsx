@@ -23,6 +23,18 @@ const EPISODE_TYPE_LABELS: Record<string, string> = {
   F: 'Unauthorized Signal',
 }
 
+const EPISODE_TYPE_COLORS: Record<string, { text: string; bg: string }> = {
+  arc: { text: '#7C6FE0', bg: 'rgba(124,111,224,0.15)' },
+  reclassification: { text: '#D4891A', bg: 'rgba(212,137,26,0.15)' },
+  classifying: { text: '#3A8FD4', bg: 'rgba(58,143,212,0.15)' },
+  behavior_collective: { text: '#2BAE82', bg: 'rgba(43,174,130,0.15)' },
+  system_alert: { text: '#D94F4F', bg: 'rgba(217,79,79,0.15)' },
+  grunt_work: { text: '#C4622D', bg: 'rgba(196,98,45,0.15)' },
+  engineer_analysis: { text: '#7DBF2E', bg: 'rgba(125,191,46,0.15)' },
+  biologist_analysis: { text: '#7DBF2E', bg: 'rgba(125,191,46,0.15)' },
+  copycat: { text: '#999890', bg: 'rgba(153,152,144,0.15)' },
+}
+
 const STATUS_FLOW: EpisodeStatus[] = ['planned', 'scripted', 'filmed', 'posted']
 
 const STATUS_COLORS: Record<EpisodeStatus, string> = {
@@ -169,7 +181,15 @@ export function ScriptWorkspacePage() {
                   EP {ep.episode_number ?? '—'}
                 </div>
                 {ep.episode_type && (
-                  <div className="font-mono text-[8px] tracking-widest px-1.5 py-0.5 rounded border border-[#1c1f26] text-[#5a6175] bg-[#111318]">
+                  <div
+                    className="font-mono text-[8px] tracking-widest px-1.5 py-0.5 rounded border"
+                    style={{
+                      color: EPISODE_TYPE_COLORS[ep.episode_type]?.text || '#5a6175',
+                      backgroundColor: EPISODE_TYPE_COLORS[ep.episode_type]?.bg || 'rgba(90,97,117,0.15)',
+                      borderColor: EPISODE_TYPE_COLORS[ep.episode_type]?.text || '#5a6175',
+                      borderOpacity: 0.3,
+                    }}
+                  >
                     {ep.episode_type.toUpperCase().replace('_', ' ')}
                   </div>
                 )}
