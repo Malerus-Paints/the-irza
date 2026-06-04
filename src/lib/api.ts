@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from './supabase'
-import type { Faction, Squad, Exhibit, Anomaly, Episode, LoreTemplate, EntryStatus, Sound } from '../types'
+import type { Faction, Squad, Exhibit, Anomaly, Episode, LoreTemplate, EntryStatus, Sound, EpisodePhoto, ExhibitRevelation } from '../types'
 
 // ─── Factions ─────────────────────────────────────────────────────────────────
 
@@ -200,6 +200,87 @@ export async function updateEpisode(id: string, payload: Partial<Episode>): Prom
     .single()
   if (error) throw error
   return data
+}
+
+// ─── Episode Photos ───────────────────────────────────────────────────────────
+
+const EPISODE_PHOTO_SELECT = '*, episode:episodes(id, episode_number, title), exhibit:exhibits(id, name, miniature_name)'
+
+export async function getEpisodePhotos(episodeId?: string): Promise<EpisodePhoto[]> {
+  let q = supabase.from('episode_photos').select(EPISODE_PHOTO_SELECT).order('created_at')
+  if (episodeId) q = q.eq('episode_id', episodeId)
+  const { data, error } = await q
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createEpisodePhoto(
+  payload: Omit<EpisodePhoto, 'id' | 'created_at' | 'episode' | 'exhibit'>
+): Promise<EpisodePhoto> {
+  const { data, error } = await supabase
+    .from('episode_photos')
+    .insert(payload)
+    .select(EPISODE_PHOTO_SELECT)
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateEpisodePhoto(id: string, payload: Partial<EpisodePhoto>): Promise<EpisodePhoto> {
+  const { data, error } = await supabase
+    .from('episode_photos')
+    .update(payload)
+    .eq('id', id)
+    .select(EPISODE_PHOTO_SELECT)
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteEpisodePhoto(id: string): Promise<void> {
+  const { error } = await supabase.from('episode_photos').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ─── Exhibit Revelations ──────────────────────────────────────────────────────
+
+const REVELATION_SELECT = '*, episode:episodes(id, episode_number, title), exhibit:exhibits(id, name), faction:factions(id, faction_id, name)'
+
+export async function getExhibitRevelations(filters?: { episodeId?: string; exhibitId?: string }): Promise<ExhibitRevelation[]> {
+  let q = supabase.from('exhibit_revelations').select(REVELATION_SELECT).order('created_at')
+  if (filters?.episodeId) q = q.eq('episode_id', filters.episodeId)
+  if (filters?.exhibitId) q = q.eq('exhibit_id', filters.exhibitId)
+  const { data, error } = await q
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createExhibitRevelation(
+  payload: Omit<ExhibitRevelation, 'id' | 'created_at' | 'episode' | 'exhibit' | 'faction'>
+): Promise<ExhibitRevelation> {
+  const { data, error } = await supabase
+    .from('exhibit_revelations')
+    .insert(payload)
+    .select(REVELATION_SELECT)
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateExhibitRevelation(id: string, payload: Partial<ExhibitRevelation>): Promise<ExhibitRevelation> {
+  const { data, error } = await supabase
+    .from('exhibit_revelations')
+    .update(payload)
+    .eq('id', id)
+    .select(REVELATION_SELECT)
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteExhibitRevelation(id: string): Promise<void> {
+  const { error } = await supabase.from('exhibit_revelations').delete().eq('id', id)
+  if (error) throw error
 }
 
 // ─── Lore Templates ───────────────────────────────────────────────────────────

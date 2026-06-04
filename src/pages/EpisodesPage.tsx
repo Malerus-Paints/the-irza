@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useEpisodes, useCreateEpisode } from '../hooks/useData'
 import { Spinner, EmptyState, PageHeader, Card, Button } from '../components/ui'
+import { EpisodeDetailPanel } from '../components/EpisodeDetailPanel'
 import type { Episode, EpisodeStatus, EpisodePreset, RuntimeClass } from '../types'
 
 // ─── Episode meta computation ─────────────────────────────────────────────────
@@ -112,6 +113,7 @@ export function EpisodesPage() {
   const { data: rawEpisodes = [], isLoading } = useEpisodes()
   const createEpisode = useCreateEpisode()
   const [showForm, setShowForm] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: '',
     preset: 'A' as EpisodePreset,
@@ -281,49 +283,68 @@ export function EpisodesPage() {
 
                 {/* Episode rows */}
                 <div className="space-y-1.5">
-                  {weekEps.map((ep) => (
-                    <Card
-                      key={ep.id}
-                      className={`hover:border-[#2a2e38] transition-colors ${ep.needsExhibit ? 'border-[#e8b84b]/20' : ''}`}
-                    >
-                      <div className="flex items-start gap-4">
-                        {/* Type prefix */}
-                        <div className="font-mono text-[10px] tracking-widest w-20 shrink-0 pt-0.5"
-                          style={{ color: ep.episode_type === 'arc' ? '#66ff99' : '#5ed9ff' }}>
-                          {ep.typePrefix}
-                        </div>
+                  {weekEps.map((ep) => {
+                    const isExpanded = expandedId === ep.id
+                    return (
+                      <Card
+                        key={ep.id}
+                        className={`transition-colors cursor-pointer select-none ${
+                          isExpanded
+                            ? 'border-[#2a2e38]'
+                            : ep.needsExhibit
+                              ? 'border-[#e8b84b]/20 hover:border-[#e8b84b]/40'
+                              : 'hover:border-[#2a2e38]'
+                        }`}
+                        onClick={() => setExpandedId(isExpanded ? null : ep.id)}
+                      >
+                        <div className="flex items-start gap-4">
+                          {/* Type prefix */}
+                          <div className="font-mono text-[10px] tracking-widest w-20 shrink-0 pt-0.5"
+                            style={{ color: ep.episode_type === 'arc' ? '#66ff99' : '#5ed9ff' }}>
+                            {ep.typePrefix}
+                          </div>
 
-                        {/* Title + exhibit */}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-sans text-sm text-[#dde0e6]">{ep.title}</div>
-                          {ep.exhibit ? (
-                            <div className="font-mono text-[10px] text-[#5a6175] mt-0.5">
-                              {ep.exhibit.name}
-                              {ep.exhibit.miniature_name && ep.exhibit.miniature_name !== ep.exhibit.name && (
-                                <span className="text-[#3d4352]"> · {ep.exhibit.miniature_name}</span>
-                              )}
-                            </div>
-                          ) : ep.needsExhibit ? (
-                            <div className="font-mono text-[10px] text-[#e8b84b]/50 mt-0.5">
-                              NO EXHIBIT ASSIGNED
-                            </div>
-                          ) : null}
-                        </div>
+                          {/* Title + exhibit */}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-sans text-sm text-[#dde0e6]">{ep.title}</div>
+                            {ep.exhibit ? (
+                              <div className="font-mono text-[10px] text-[#5a6175] mt-0.5">
+                                {ep.exhibit.name}
+                                {ep.exhibit.miniature_name && ep.exhibit.miniature_name !== ep.exhibit.name && (
+                                  <span className="text-[#3d4352]"> · {ep.exhibit.miniature_name}</span>
+                                )}
+                              </div>
+                            ) : ep.needsExhibit ? (
+                              <div className="font-mono text-[10px] text-[#e8b84b]/50 mt-0.5">
+                                NO EXHIBIT ASSIGNED
+                              </div>
+                            ) : null}
+                          </div>
 
-                        {/* Runtime + status */}
-                        <div className="flex items-center gap-3 shrink-0">
-                          {ep.runtime_class && (
-                            <span className="font-mono text-[10px] text-[#3d4352] tracking-widest">
-                              {ep.runtime_class}
+                          {/* Runtime + status + chevron */}
+                          <div className="flex items-center gap-3 shrink-0">
+                            {ep.runtime_class && (
+                              <span className="font-mono text-[10px] text-[#3d4352] tracking-widest">
+                                {ep.runtime_class}
+                              </span>
+                            )}
+                            <span className={`font-mono text-[10px] tracking-widest uppercase ${STATUS_COLORS[ep.status] ?? 'text-[#3d4352]'}`}>
+                              {ep.status}
                             </span>
-                          )}
-                          <span className={`font-mono text-[10px] tracking-widest uppercase ${STATUS_COLORS[ep.status] ?? 'text-[#3d4352]'}`}>
-                            {ep.status}
-                          </span>
+                            <span className="font-mono text-[10px] text-[#3d4352]">
+                              {isExpanded ? '▲' : '▼'}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </Card>
-                  ))}
+
+                        {isExpanded && (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <EpisodeDetailPanel episode={ep} gateLevel={ep.gateWindow} />
+                          </div>
+                        )}
+                      </Card>
+                    )
+                  })}
                 </div>
               </div>
             )

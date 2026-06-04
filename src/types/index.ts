@@ -130,6 +130,49 @@ export interface Episode {
   updated_at: string
 }
 
+export type PhotoRole = 'primary' | 'secondary' | 'background' | 'prop'
+
+export type RevelationState = 'revealed' | 'pending_review' | 'encrypted' | 'redacted'
+
+export type RevealedField =
+  | 'name'
+  | 'origin_sect'
+  | 'hazard_class'
+  | 'threat_level'
+  | 'behavioral_pattern'
+  | 'engineer_assessment'
+  | 'biologist_assessment'
+  | 'faction'
+  | 'designation'
+
+export interface EpisodePhoto {
+  id: string
+  episode_id: string
+  episode?: Pick<Episode, 'id' | 'episode_number' | 'title'>
+  exhibit_id: string | null
+  exhibit?: Pick<Exhibit, 'id' | 'name' | 'miniature_name'> | null
+  file_path: string
+  photo_role: PhotoRole
+  notes: string | null
+  created_at: string
+}
+
+export interface ExhibitRevelation {
+  id: string
+  episode_id: string
+  episode?: Pick<Episode, 'id' | 'episode_number' | 'title'>
+  exhibit_id: string | null
+  exhibit?: Pick<Exhibit, 'id' | 'name'> | null
+  faction_id: string | null
+  faction?: Pick<Faction, 'id' | 'faction_id' | 'name'> | null
+  field_name: RevealedField
+  revealed_value: string | null
+  revelation_state: RevelationState
+  gate_level: number | null
+  notes: string | null
+  created_at: string
+}
+
 export interface LoreTemplate {
   id: string
   name: string

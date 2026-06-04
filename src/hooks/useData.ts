@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as api from '../lib/api'
-import type { Faction, Squad, Exhibit, Anomaly, Episode, Sound } from '../types'
+import type { Faction, Squad, Exhibit, Anomaly, Episode, Sound, EpisodePhoto, ExhibitRevelation } from '../types'
 
 // ─── Factions ─────────────────────────────────────────────────────────────────
 
@@ -157,6 +157,77 @@ export function useUpdateEpisode() {
     mutationFn: ({ id, payload }: { id: string; payload: Partial<Episode> }) =>
       api.updateEpisode(id, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['episodes'] }),
+  })
+}
+
+// ─── Episode Photos ───────────────────────────────────────────────────────────
+
+export function useEpisodePhotos(episodeId?: string) {
+  return useQuery({
+    queryKey: ['episode_photos', episodeId ?? 'all'],
+    queryFn: () => api.getEpisodePhotos(episodeId),
+  })
+}
+
+export function useCreateEpisodePhoto() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: api.createEpisodePhoto,
+    onSuccess: (photo) => {
+      qc.invalidateQueries({ queryKey: ['episode_photos'] })
+      qc.invalidateQueries({ queryKey: ['episodes', photo.episode_id] })
+    },
+  })
+}
+
+export function useUpdateEpisodePhoto() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<EpisodePhoto> }) =>
+      api.updateEpisodePhoto(id, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['episode_photos'] }),
+  })
+}
+
+export function useDeleteEpisodePhoto() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: api.deleteEpisodePhoto,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['episode_photos'] }),
+  })
+}
+
+// ─── Exhibit Revelations ──────────────────────────────────────────────────────
+
+export function useExhibitRevelations(filters?: { episodeId?: string; exhibitId?: string }) {
+  return useQuery({
+    queryKey: ['exhibit_revelations', filters?.episodeId ?? null, filters?.exhibitId ?? null],
+    queryFn: () => api.getExhibitRevelations(filters),
+  })
+}
+
+export function useCreateExhibitRevelation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: api.createExhibitRevelation,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['exhibit_revelations'] }),
+  })
+}
+
+export function useUpdateExhibitRevelation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<ExhibitRevelation> }) =>
+      api.updateExhibitRevelation(id, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['exhibit_revelations'] }),
+  })
+}
+
+export function useDeleteExhibitRevelation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: api.deleteExhibitRevelation,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['exhibit_revelations'] }),
   })
 }
 
