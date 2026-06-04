@@ -186,8 +186,7 @@ export function ScriptWorkspacePage() {
                     style={{
                       color: EPISODE_TYPE_COLORS[ep.episode_type]?.text || '#5a6175',
                       backgroundColor: EPISODE_TYPE_COLORS[ep.episode_type]?.bg || 'rgba(90,97,117,0.15)',
-                      borderColor: EPISODE_TYPE_COLORS[ep.episode_type]?.text || '#5a6175',
-                      borderOpacity: 0.3,
+                      borderColor: `${EPISODE_TYPE_COLORS[ep.episode_type]?.text || '#5a6175'}4D`,
                     }}
                   >
                     {ep.episode_type.toUpperCase().replace('_', ' ')}
