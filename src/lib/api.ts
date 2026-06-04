@@ -175,7 +175,7 @@ export async function deleteAnomaly(id: string): Promise<void> {
 export async function getEpisodes(): Promise<Episode[]> {
   const { data, error } = await supabase
     .from('episodes')
-    .select('*')
+    .select('*, exhibit:exhibits(id, name, miniature_name)')
     .order('episode_number', { nullsFirst: false })
   if (error) throw error
   return data ?? []

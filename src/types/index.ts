@@ -116,6 +116,7 @@ export interface Episode {
   runtime_class: RuntimeClass | null
   phase: number
   exhibit_id: string | null
+  exhibit?: { id: string; name: string; miniature_name: string | null } | null
   squad_id: string | null
   faction_id: string | null
   anomaly_id: string | null
