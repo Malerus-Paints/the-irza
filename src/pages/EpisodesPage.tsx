@@ -134,6 +134,10 @@ export function EpisodesPage() {
 
   async function handleCreateEpisode() {
     if (!formData.title.trim()) return
+    if (formData.title.includes('#')) {
+      alert('Episode titles must not contain #. Use the caption field for hashtags.')
+      return
+    }
     try {
       await createEpisode.mutateAsync({
         title: formData.title,

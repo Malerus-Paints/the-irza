@@ -115,6 +115,15 @@ supabase/
 
 ---
 
+## Naming Conventions
+
+- **Episode titles must never contain `#`** — `#` belongs only in captions/hashtags (social posts), never in the canonical `title` field in the DB or in Remotion data files. The DB enforces this with a CHECK constraint; the UI validates it on form submit.
+- Episode titles are plain prose or ALL-CAPS archive labels: `"Archive Signal"`, `"PARTIAL BOOT"`. Numbers are expressed as `"001"` or `"Ep 1"` — never `"#001"`.
+- `tracker_id` values follow the `TYPE-NNN` format (e.g. `ARC-001`, `R-001`) — no `#` prefix.
+- Captions/hashtags (in `irza-studio` data files and Buffer posts) are the only place `#` appears, as social media hashtags appended after a `\n`.
+
+---
+
 ## Gotchas
 
 1. **Tailwind v4 config:** uses `@theme {}` block in `index.css` — no `tailwind.config.js`. The plugin is `@tailwindcss/vite` added to `vite.config.ts`.
