@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useEpisodes, useUpdateEpisode, useCreateEpisode } from '../hooks/useData'
 import { Spinner } from '../components/ui'
-import type { Episode, EpisodeStatus, EpisodePreset, RuntimeClass } from '../types'
+import { EPISODE_TYPE_LABELS } from '../types'
+import type { Episode, EpisodeStatus, RuntimeClass } from '../types'
 
 const CHARACTERS = [
   { name: 'CURATOR',   color: '#F2E9DC', style: 'Metaphor over fact. Weighted conclusions. Never states anything directly.' },
@@ -46,13 +47,13 @@ const STATUS_COLORS: Record<EpisodeStatus, string> = {
 
 type NewEpForm = {
   title: string
-  preset: EpisodePreset | ''
+  episode_type: string
   runtime_class: RuntimeClass | ''
   phase: number
 }
 
 function emptyNewEp(): NewEpForm {
-  return { title: '', preset: '', runtime_class: 'STANDARD', phase: 1 }
+  return { title: '', episode_type: '', runtime_class: 'STANDARD', phase: 1 }
 }
 
 export function ScriptWorkspacePage() {
@@ -115,8 +116,7 @@ export function ScriptWorkspacePage() {
       {
         title: newEp.title.trim(),
         episode_number: null,
-        episode_type: newEp.preset ? EPISODE_TYPE_LABELS[newEp.preset] ?? null : null,
-        preset: (newEp.preset || null) as EpisodePreset | null,
+        episode_type: newEp.episode_type || null,
         runtime_class: (newEp.runtime_class || null) as RuntimeClass | null,
         phase: newEp.phase,
         exhibit_id: null,
@@ -234,7 +234,7 @@ export function ScriptWorkspacePage() {
                 <div className="min-w-0">
                   <div className="font-mono text-[10px] text-[#3d4352] tracking-widest mb-1">
                     EP {selectedEpisode.episode_number ?? '—'} ·{' '}
-                    {selectedEpisode.preset ? EPISODE_TYPE_LABELS[selectedEpisode.preset] : 'UNCLASSIFIED'}{' '}
+                    {selectedEpisode.episode_type ? (EPISODE_TYPE_LABELS[selectedEpisode.episode_type] ?? selectedEpisode.episode_type) : 'UNCLASSIFIED'}{' '}
                     {selectedEpisode.runtime_class ? `· ${selectedEpisode.runtime_class}` : ''}{' '}
                     {selectedEpisode.phase ? `· PHASE ${selectedEpisode.phase}` : ''}
                   </div>
@@ -391,13 +391,13 @@ function NewEpisodeForm({
           <div>
             <div className="font-mono text-[10px] text-[#3d4352] tracking-widest mb-1">TYPE</div>
             <select
-              value={form.preset}
-              onChange={(e) => onChange({ preset: e.target.value as EpisodePreset | '' })}
+              value={form.episode_type}
+              onChange={(e) => onChange({ episode_type: e.target.value })}
               className="w-full bg-[#111318] border border-[#1c1f26] rounded px-3 py-2 text-sm text-[#dde0e6] font-sans focus:outline-none focus:border-[#66ff99]/40"
             >
               <option value="">— TYPE —</option>
               {Object.entries(EPISODE_TYPE_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{k} — {v}</option>
+                <option key={k} value={k}>{v}</option>
               ))}
             </select>
           </div>

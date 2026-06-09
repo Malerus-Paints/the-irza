@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useCreateExhibit, useUpdateExhibit, useDeleteExhibit, useFactions } from '../hooks/useData'
 import { Button } from './ui'
+import { EPISODE_TYPE_LABELS } from '../types'
 import type {
   Exhibit, EntryStatus, ArchiveStatus, ThreatLevel,
-  OriginRealityStatus, RuntimeClass, EpisodePreset,
+  OriginRealityStatus, RuntimeClass,
 } from '../types'
 
 type ExhibitFormData = {
@@ -22,7 +23,6 @@ type ExhibitFormData = {
   base_size: string
   episode_type: string
   runtime_class: RuntimeClass | ''
-  preset: EpisodePreset | ''
   filmed: boolean
   lore_text: string
   curator_interpretation: string
@@ -47,7 +47,6 @@ function emptyForm(): ExhibitFormData {
     base_size: '',
     episode_type: '',
     runtime_class: '',
-    preset: '',
     filmed: false,
     lore_text: '',
     curator_interpretation: '',
@@ -73,7 +72,6 @@ function exhibitToForm(e: Exhibit): ExhibitFormData {
     base_size: e.base_size ?? '',
     episode_type: e.episode_type ?? '',
     runtime_class: e.runtime_class ?? '',
-    preset: e.preset ?? '',
     filmed: e.filmed,
     lore_text: e.lore_text ?? '',
     curator_interpretation: e.curator_interpretation ?? '',
@@ -123,7 +121,6 @@ export function ExhibitDrawer({ exhibit, onClose }: Props) {
       base_size: form.base_size.trim() || null,
       episode_type: form.episode_type.trim() || null,
       runtime_class: (form.runtime_class || null) as RuntimeClass | null,
-      preset: (form.preset || null) as EpisodePreset | null,
       filmed: form.filmed,
       lore_text: form.lore_text.trim() || null,
       curator_interpretation: form.curator_interpretation.trim() || null,
@@ -308,18 +305,15 @@ export function ExhibitDrawer({ exhibit, onClose }: Props) {
                   ]}
                 />
               </Field>
-              <Field label="PRESET">
+              <Field label="EPISODE TYPE">
                 <SelectInput
-                  value={form.preset}
-                  onChange={(v) => set('preset', v)}
+                  value={form.episode_type}
+                  onChange={(v) => set('episode_type', v)}
                   options={[
                     { value: '', label: '—' },
-                    ...(['A','B','C','D','E','F'] as EpisodePreset[]).map((p) => ({ value: p, label: p })),
+                    ...Object.entries(EPISODE_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v })),
                   ]}
                 />
-              </Field>
-              <Field label="EPISODE TYPE">
-                <TextInput value={form.episode_type} onChange={(v) => set('episode_type', v)} placeholder="Type" />
               </Field>
             </div>
             <div className="flex items-center gap-2">

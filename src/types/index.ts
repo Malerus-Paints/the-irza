@@ -6,7 +6,6 @@ export type ThreatLevel = 'NONE' | 'LOW' | 'MODERATE' | 'HIGH' | 'UNRESOLVABLE'
 export type OriginRealityStatus = 'unknown' | 'collapsed' | 'collapsing' | 'stable'
 export type EpisodeStatus = 'planned' | 'scripted' | 'filmed' | 'posted'
 export type RuntimeClass = 'SHORT' | 'STANDARD' | 'EVENT'
-export type EpisodePreset = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
 
 // ─── Registry Types ───────────────────────────────────────────────────────────
 
@@ -66,7 +65,6 @@ export interface Exhibit {
   base_size: string | null
   episode_type: string | null
   runtime_class: RuntimeClass | null
-  preset: EpisodePreset | null
   episode_number: number | null
   filmed: boolean
   posted_date: string | null
@@ -112,7 +110,6 @@ export interface Episode {
   episode_number: number | null
   title: string
   episode_type: string | null
-  preset: EpisodePreset | null
   runtime_class: RuntimeClass | null
   phase: number
   exhibit_id: string | null
@@ -302,10 +299,14 @@ export const SOUND_CATEGORIES = [
 ] as const
 
 export const EPISODE_TYPE_LABELS: Record<string, string> = {
-  'A': 'Exhibit Record',
-  'B': 'Behavioral Cluster',
-  'C': 'Cultural Analysis',
-  'D': 'System Classification',
-  'E': 'Archive Recovery',
-  'F': 'Unauthorized Signal',
+  'arc':                'Arc',
+  'classifying':        'Classifying',
+  'reclassification':   'Reclassification',
+  'behavior_collective':'Behavior Collective',
+  'system_alert':       'System Alert',
+  'engineer_analysis':  'Engineer Analysis',
+  'biologist_analysis': 'Biologist Analysis',
+  'grunt_work':         'Grunt Work',
+  'copycat':            'Copycat',
+  'wanderer':           'Wanderer',
 }

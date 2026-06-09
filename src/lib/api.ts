@@ -629,7 +629,6 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               base_size: figure.base_size_mm ? `${figure.base_size_mm}mm` : null,
               episode_type: null,
               runtime_class: null,
-              preset: null,
               episode_number: null,
               filmed: false,
               posted_date: null,

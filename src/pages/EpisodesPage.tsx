@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useEpisodes, useCreateEpisode } from '../hooks/useData'
 import { Spinner, EmptyState, PageHeader, Card, Button } from '../components/ui'
 import { EpisodeDetailPanel } from '../components/EpisodeDetailPanel'
-import type { Episode, EpisodeStatus, EpisodePreset, RuntimeClass } from '../types'
+import { EPISODE_TYPE_LABELS } from '../types'
+import type { Episode, EpisodeStatus, RuntimeClass } from '../types'
 
 // ─── Episode meta computation ─────────────────────────────────────────────────
 
@@ -98,15 +99,6 @@ const STATUS_COLORS: Record<EpisodeStatus, string> = {
 
 const RUNTIME_CLASSES: RuntimeClass[] = ['SHORT', 'STANDARD', 'EVENT']
 
-const EPISODE_PRESETS: Record<EpisodePreset, string> = {
-  'A': 'Exhibit Record',
-  'B': 'Behavioral Cluster',
-  'C': 'Cultural Analysis',
-  'D': 'System Classification',
-  'E': 'Archive Recovery',
-  'F': 'Unauthorized Signal',
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function EpisodesPage() {
@@ -116,7 +108,7 @@ export function EpisodesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: '',
-    preset: 'A' as EpisodePreset,
+    episode_type: '' as string,
     runtime_class: 'STANDARD' as RuntimeClass,
     phase: 1,
     status: 'planned' as EpisodeStatus,
@@ -141,12 +133,11 @@ export function EpisodesPage() {
     try {
       await createEpisode.mutateAsync({
         title: formData.title,
-        preset: formData.preset,
+        episode_type: formData.episode_type || null,
         runtime_class: formData.runtime_class,
         phase: formData.phase,
         status: formData.status,
         episode_number: null,
-        episode_type: null,
         exhibit_id: null,
         squad_id: null,
         faction_id: null,
@@ -158,7 +149,7 @@ export function EpisodesPage() {
         notes: null,
       })
       setShowForm(false)
-      setFormData({ title: '', preset: 'A', runtime_class: 'STANDARD', phase: 1, status: 'planned' })
+      setFormData({ title: '', episode_type: '', runtime_class: 'STANDARD', phase: 1, status: 'planned' })
     } catch (err) {
       console.error('Failed to create episode:', err)
     }
@@ -188,14 +179,15 @@ export function EpisodesPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-mono text-[10px] text-[#5a6175] tracking-widest block mb-1">PRESET</label>
+                <label className="font-mono text-[10px] text-[#5a6175] tracking-widest block mb-1">EPISODE TYPE</label>
                 <select
-                  value={formData.preset}
-                  onChange={(e) => setFormData({ ...formData, preset: e.target.value as EpisodePreset })}
+                  value={formData.episode_type}
+                  onChange={(e) => setFormData({ ...formData, episode_type: e.target.value })}
                   className="w-full bg-[#0a0c10] border border-[#1c1f26] rounded px-3 py-2 text-sm text-[#dde0e6] focus:outline-none focus:border-[#66ff99]/40"
                 >
-                  {(Object.entries(EPISODE_PRESETS) as [EpisodePreset, string][]).map(([key, label]) => (
-                    <option key={key} value={key}>{key} — {label}</option>
+                  <option value="">— TYPE —</option>
+                  {Object.entries(EPISODE_TYPE_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
                   ))}
                 </select>
               </div>
