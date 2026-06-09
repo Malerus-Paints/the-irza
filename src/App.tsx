@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Sidebar } from './components/layout/Sidebar'
 import { DashboardPage } from './pages/DashboardPage'
@@ -10,8 +11,39 @@ import { LoreGeneratorPage } from './pages/LoreGeneratorPage'
 import { SearchPage } from './pages/SearchPage'
 import { ScriptWorkspacePage } from './pages/ScriptWorkspacePage'
 import { SoundLibraryPage } from './pages/SoundLibraryPage'
+import { LoginPage } from './pages/LoginPage'
+import { supabase } from './lib/supabase'
+import { useAuthStore } from './lib/store'
 
 export default function App() {
+  const { user, setUser } = useAuthStore()
+  const [bootstrapped, setBootstrapped] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setBootstrapped(true)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [setUser])
+
+  if (!bootstrapped) {
+    return (
+      <div className="flex min-h-screen bg-[#050608] items-center justify-center">
+        <div className="font-mono text-[10px] text-[#3d4352] tracking-widest animate-pulse">
+          SYSTEM INITIALIZING...
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) return <LoginPage />
+
   return (
     <BrowserRouter>
       <div className="flex min-h-screen bg-[#050608]">

@@ -1,4 +1,6 @@
 import { NavLink } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../../lib/store'
 
 const NAV = [
   { to: '/',            label: 'ARCHIVE STATUS',   icon: '◈' },
@@ -14,6 +16,12 @@ const NAV = [
 ]
 
 export function Sidebar() {
+  const { user } = useAuthStore()
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+  }
+
   return (
     <aside className="fixed top-0 left-0 h-full w-56 bg-[#0a0c10] border-r border-[#1c1f26] flex flex-col z-40">
       {/* Header */}
@@ -49,10 +57,16 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-4 border-t border-[#1c1f26]">
-        <div className="text-[#3d4352] font-mono text-[10px] tracking-widest">
-          SYSTEM v1.0.0
+      <div className="px-4 py-4 border-t border-[#1c1f26] space-y-2">
+        <div className="text-[#3d4352] font-mono text-[10px] tracking-widest truncate">
+          {user?.email ?? 'OPERATOR'}
         </div>
+        <button
+          onClick={handleSignOut}
+          className="w-full text-left font-mono text-[10px] tracking-widest text-[#3d4352] hover:text-[#cc3355] transition-colors"
+        >
+          SIGN OUT
+        </button>
       </div>
     </aside>
   )
