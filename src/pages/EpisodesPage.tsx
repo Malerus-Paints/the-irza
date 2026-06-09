@@ -56,7 +56,7 @@ function computeMeta(episodes: Episode[]): EpisodeMeta[] {
     if (type === 'arc') {
       arcCount++
       arcNumber = arcCount
-      typePrefix = `ARC ${String(arcCount).padStart(2, '0')}`
+      typePrefix = `ARC-${String(arcCount).padStart(3, '0')}`
     } else {
       const abbrev = TYPE_ABBREV[type] ?? type.slice(0, 2).toUpperCase()
       typeCounters[abbrev] = (typeCounters[abbrev] ?? 0) + 1
