@@ -120,7 +120,8 @@ export interface Episode {
   squad_id: string | null
   faction_id: string | null
   anomaly_id: string | null
-  script_text: string | null
+  script_text: string | null       // legacy plain-text field — prefer script_json
+  script_json: EpisodeScriptJson | null
   filmed: boolean
   posted_date: string | null
   platform: string | null
@@ -128,6 +129,55 @@ export interface Episode {
   notes: string | null
   created_at: string
   updated_at: string
+}
+
+// ─── Script JSON ─────────────────────────────────────────────────────────────
+
+export type ScriptSpeaker = 'curator' | 'muscle' | 'system' | 'engineer' | 'biologist' | 'copycat' | 'wanderer'
+export type GlitchIntensity = 'none' | 'minor' | 'moderate' | 'heavy' | 'cut'
+export type BeatName = 'HOOK' | 'BEAUTY' | 'LORE' | 'QUESTION'
+
+export interface ScriptDialogueLine {
+  speaker: ScriptSpeaker
+  text: string
+  from: number
+  to: number
+}
+
+export interface ScriptUIEvent {
+  text: string
+  from: number
+  to: number
+  variant?: string
+}
+
+export interface ScriptBeat {
+  name: BeatName
+  from: number
+  to: number
+}
+
+export interface ScriptGlitchEvent {
+  from: number
+  to: number
+  intensity: GlitchIntensity
+  note?: string
+}
+
+export interface EpisodeScriptJson {
+  purpose: string
+  setup: {
+    miniature: string
+    backdrop: string
+    lighting: string
+  }
+  beats: ScriptBeat[]
+  dialogue: ScriptDialogueLine[]
+  systemUI: ScriptUIEvent[]
+  glitch: ScriptGlitchEvent[]
+  endingFeeling: string
+  voiceNotes: string[]
+  caption: string
 }
 
 export type PhotoRole = 'primary' | 'secondary' | 'background' | 'prop'
