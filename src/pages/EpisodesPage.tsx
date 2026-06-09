@@ -143,6 +143,7 @@ export function EpisodesPage() {
         faction_id: null,
         anomaly_id: null,
         script_text: null,
+        script_json: null,
         filmed: false,
         posted_date: null,
         platform: null,

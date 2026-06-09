@@ -15,14 +15,6 @@ const CHARACTERS = [
   { name: 'MALERUS',   color: '#888888', style: 'Prior operator. Fragmented trace only.' },
 ]
 
-const EPISODE_TYPE_LABELS: Record<string, string> = {
-  A: 'Exhibit Record',
-  B: 'Behavioral Cluster',
-  C: 'Cultural Analysis',
-  D: 'System Classification',
-  E: 'Archive Recovery',
-  F: 'Unauthorized Signal',
-}
 
 const EPISODE_TYPE_COLORS: Record<string, { text: string; bg: string }> = {
   arc: { text: '#7C6FE0', bg: 'rgba(124,111,224,0.15)' },
@@ -124,6 +116,7 @@ export function ScriptWorkspacePage() {
         faction_id: null,
         anomaly_id: null,
         script_text: null,
+        script_json: null,
         filmed: false,
         posted_date: null,
         platform: null,
