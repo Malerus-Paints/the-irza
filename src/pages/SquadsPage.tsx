@@ -10,6 +10,8 @@ export function SquadsPage() {
   const [search, setSearch] = useState('')
   const [drawer, setDrawer] = useState<Squad | null | 'new'>(undefined as never)
 
+  const squadNumbers = new Map(squads.map((s, i) => [s.id, i + 1]))
+
   const filtered = squads.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
     s.squad_id.toLowerCase().includes(search.toLowerCase())
@@ -46,7 +48,9 @@ export function SquadsPage() {
           {filtered.map((squad) => (
             <Card key={squad.id} className="hover:border-[#2a2e38] transition-colors cursor-pointer" onClick={() => setDrawer(squad)}>
               <div className="flex items-center gap-4">
-                <div className="font-mono text-xs text-[#3d4352] w-14 shrink-0">{squad.squad_id}</div>
+                <div className="font-mono text-xs text-[#3d4352] w-20 shrink-0">
+                  Squad - {String(squadNumbers.get(squad.id) ?? 0).padStart(3, '0')}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-sans text-sm text-[#dde0e6] truncate">{squad.name}</div>
                   <div className="font-mono text-[10px] text-[#5a6175] mt-0.5">
