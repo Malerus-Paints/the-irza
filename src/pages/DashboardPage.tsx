@@ -61,14 +61,16 @@ export function DashboardPage() {
         <Card>
           <div className="space-y-3">
             <p className="font-sans text-sm text-[#8891a4]">
-              Import armies and figures from Painting Library to populate archive factions and exhibits.
+              Import factions and exhibits from{' '}
+              <span className="text-[#dde0e6] font-mono text-xs">THE ZOO</span>
+              {' '}— formerly The Painted Archive — to populate the canon registry.
             </p>
             <div>
               <Button
                 onClick={handleSync}
                 disabled={syncMutation.isPending}
               >
-                {syncMutation.isPending ? 'SYNCING...' : 'SYNC FROM PAINTING LIBRARY'}
+                {syncMutation.isPending ? 'SYNCING...' : 'SYNC FROM THE ZOO'}
               </Button>
             </div>
             {lastSyncTime && (

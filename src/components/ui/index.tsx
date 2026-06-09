@@ -190,7 +190,7 @@ export function SyncStatus({ status, result, error }: SyncStatusProps) {
       <Card className="border-[#66ff99]/20 bg-[#066630]/10">
         <div className="flex items-center gap-3">
           <div className="w-4 h-4 border-2 border-[#1c1f26] border-t-[#66ff99] rounded-full animate-spin" />
-          <span className="font-mono text-sm text-[#66ff99]">SYNCING FROM PAINTING LIBRARY...</span>
+          <span className="font-mono text-sm text-[#66ff99]">SYNCING FROM THE ZOO...</span>
         </div>
       </Card>
     )

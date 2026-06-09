@@ -9,6 +9,14 @@
 
 ---
 
+## Related Businesses (Cross-Promotion)
+
+**The Zoo** — the companion miniature/hobby business that supplies the physical exhibits. Formerly known as **The Painted Archive** (old name). The IRZA app syncs exhibit and faction data from The Zoo's inventory system. Reference "The Zoo" in sync controls, data-source labels, and system notices — this is both in-universe lore (the facility sources entities from The Zoo) and real cross-promotion.
+
+**MiniCodex** — a field device made by The Zoo used to scan and track exhibit information. In-universe, archive staff use MiniCodex devices to log specimen data. Reference it in exhibit data sections (e.g., "MINICØDEX COMPATIBLE", "SPECIMEN DATA // MINICØDEX") where physical exhibit data is displayed or entered. It's a real product so mentioning it is good cross-promotion.
+
+---
+
 ## Canon Rules (NEVER VIOLATE IN GENERATED CONTENT)
 
 - Miniatures are **never** called miniatures — always "entities", "specimens", or "exhibits"

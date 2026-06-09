@@ -53,6 +53,10 @@ export function ExhibitsPage() {
         ))}
       </div>
 
+      <div className="font-mono text-[10px] text-[#2a3040] tracking-widest mb-3">
+        MINICØDEX COMPATIBLE — SPECIMEN DATA READABLE BY THE ZOO INVENTORY SYSTEM
+      </div>
+
       {filtered.length === 0 ? (
         <EmptyState message="EXHIBIT DATABASE AWAITING FIRST ENTRY" />
       ) : (

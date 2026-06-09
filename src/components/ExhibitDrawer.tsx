@@ -283,7 +283,7 @@ export function ExhibitDrawer({ exhibit, onClose }: Props) {
           </Section>
 
           {/* ── Section: Physical ── */}
-          <Section label="SPECIMEN DATA">
+          <Section label="SPECIMEN DATA // MINICØDEX">
             <div className="grid grid-cols-2 gap-3">
               <Field label="MINIATURE NAME">
                 <TextInput value={form.miniature_name} onChange={(v) => set('miniature_name', v)} placeholder="Physical model name" />
