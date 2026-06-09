@@ -83,9 +83,10 @@ function exhibitToForm(e: Exhibit): ExhibitFormData {
 interface Props {
   exhibit: Exhibit | null   // null = create mode
   onClose: () => void
+  sequentialNumber?: number
 }
 
-export function ExhibitDrawer({ exhibit, onClose }: Props) {
+export function ExhibitDrawer({ exhibit, onClose, sequentialNumber }: Props) {
   const [form, setForm] = useState<ExhibitFormData>(exhibit ? exhibitToForm(exhibit) : emptyForm())
   const [confirmDelete, setConfirmDelete] = useState(false)
   const { data: factions = [] } = useFactions()
@@ -161,7 +162,7 @@ export function ExhibitDrawer({ exhibit, onClose }: Props) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#1c1f26] shrink-0">
           <div>
             <div className="font-mono text-[10px] text-[#66ff99] tracking-widest mb-0.5">
-              {isEdit ? `EXHIBIT — ${exhibit!.exhibit_number ?? 'UNNUMBERED'}` : 'NEW EXHIBIT'}
+              {isEdit ? `EXHIBIT — ${sequentialNumber != null ? String(sequentialNumber).padStart(3, '0') : (exhibit!.exhibit_number ?? 'UNNUMBERED')}` : 'NEW EXHIBIT'}
             </div>
             <h2 className="font-display text-xl text-[#dde0e6] tracking-widest">
               {isEdit ? form.name || 'UNNAMED' : 'CATALOGUE ENTRY'}

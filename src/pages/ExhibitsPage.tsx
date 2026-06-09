@@ -100,6 +100,7 @@ export function ExhibitsPage() {
         <ExhibitDrawer
           exhibit={drawerExhibit}
           onClose={() => setDrawerExhibit(undefined)}
+          sequentialNumber={drawerExhibit ? (exhibitNumbers.get(drawerExhibit.id) ?? undefined) : undefined}
         />
       )}
     </div>

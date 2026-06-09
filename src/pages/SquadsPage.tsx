@@ -72,6 +72,7 @@ export function SquadsPage() {
         <SquadDrawer
           squad={drawer === 'new' ? null : drawer}
           onClose={() => setDrawer(undefined as never)}
+          sequentialNumber={drawer !== 'new' ? (squadNumbers.get(drawer.id) ?? undefined) : undefined}
         />
       )}
     </div>

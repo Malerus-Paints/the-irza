@@ -51,9 +51,10 @@ function squadToForm(s: Squad): SquadFormData {
 interface Props {
   squad: Squad | null
   onClose: () => void
+  sequentialNumber?: number
 }
 
-export function SquadDrawer({ squad, onClose }: Props) {
+export function SquadDrawer({ squad, onClose, sequentialNumber }: Props) {
   const [form, setForm] = useState<SquadFormData>(squad ? squadToForm(squad) : emptyForm())
   const [confirmDelete, setConfirmDelete] = useState(false)
   const createSquad = useCreateSquad()
@@ -107,7 +108,7 @@ export function SquadDrawer({ squad, onClose }: Props) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#1c1f26] shrink-0">
           <div>
             <div className="font-mono text-[10px] text-[#66ff99] tracking-widest mb-0.5">
-              {isEdit ? `SQUAD — ${squad!.squad_id}` : 'NEW SQUAD'}
+              {isEdit ? `SQUAD — ${sequentialNumber != null ? String(sequentialNumber).padStart(3, '0') : squad!.squad_id}` : 'NEW SQUAD'}
             </div>
             <h2 className="font-display text-xl text-[#dde0e6] tracking-widest">
               {isEdit ? form.name || 'UNNAMED' : 'REGISTER SQUAD'}
