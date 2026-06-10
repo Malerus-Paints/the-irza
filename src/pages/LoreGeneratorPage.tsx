@@ -13,19 +13,24 @@ function buildFullArmyPrompt(faction: Faction, members: { name: string; lore_tex
     })
     .join('\n\n')
 
-  return `INTER-REALITY ZOOLOGICAL ARCHIVE
-FULL ARMY LORE GENERATION BRIEF
-════════════════════════════════════════
+  return `You are generating IRZA exhibit records for an entire faction. The Archive is a facility preserving entities from collapsing realities. Staff do not know the true premise.
 
-FACTION: ${faction.faction_id} — ${faction.name.toUpperCase()}
-DOMAIN: ${faction.domain ?? 'UNCLASSIFIED'}
-THREAT LEVEL: ${faction.threat_level ?? 'UNCLASSIFIED'}
-BEHAVIORAL CLASSIFICATION: ${faction.behavioral_classification ?? 'UNCLASSIFIED'}
-COLLECTIVE OR INDIVIDUAL: ${faction.collective_or_individual ?? 'UNCLASSIFIED'}
-ORIGIN REALITY STATUS: ${faction.origin_reality_status.toUpperCase()}
+CANON RULES:
+- Never call entities "miniatures" — always "entities", "specimens", or "exhibits"
+- The Archive is never called a zoo by staff in formal records
+- The true premise (ark for collapsing realities) is NEVER stated directly
+- Curator: metaphor over fact, weighted conclusions, never states directly
+- Engineer: clinical, functional, precise — numbers and observations
+- Biologist: wonder + precision, scientific awe, slightly fast delivery
+- Muscle: reactive, casual, says what the audience is thinking
+- Wanderer: irregular rhythm, uncertain, something finding its position
+- System: ALL CAPS, fragmented outputs, never emotional
 
-FACTION LORE:
-${faction.lore_text?.trim() ?? '[No faction lore documented yet. Infer from name, domain, and specimen data.]'}
+FACTION CONTEXT:
+${faction.faction_id} — ${faction.name.toUpperCase()} | Domain: ${faction.domain ?? 'UNCLASSIFIED'} | Threat: ${faction.threat_level ?? 'UNCLASSIFIED'}
+Behavioral Classification: ${faction.behavioral_classification ?? 'UNCLASSIFIED'} | ${faction.collective_or_individual ?? 'UNCLASSIFIED'} | Origin: ${faction.origin_reality_status.toUpperCase()}
+
+${faction.lore_text?.trim() ?? '[No faction lore documented. Infer from name, domain, and specimen data.]'}
 
 ════════════════════════════════════════
 ROSTER — ${members.length} SPECIMEN${members.length !== 1 ? 'S' : ''} CATALOGUED
@@ -34,45 +39,31 @@ ROSTER — ${members.length} SPECIMEN${members.length !== 1 ? 'S' : ''} CATALOGU
 ${roster}
 
 ════════════════════════════════════════
-GENERATION TASK
-════════════════════════════════════════
-
-You are writing lore entries for the Inter-Reality Zoological Archive — a found-footage institutional sci-fi series where painted miniatures are presented as real entities pulled from collapsing realities for study and containment.
-
-CANON RULES (never violate):
-- Never call them miniatures. They are entities, specimens, or exhibits.
-- Surface premise (what the cast knows): the Archive is a facility pulling creatures from other realities for study.
-- True premise (known only to The System): the source realities are COLLAPSING. The Archive is an ARK.
-- The true premise is never stated directly — it is the slow-burn revelation of the series.
-- Anomaly containment is dimensional triage, not classification management.
-- The cast does not know the true premise.
-
-CHARACTER VOICES — write each voice distinctly:
-
-CURATOR — Metaphor over fact. Weighted, poetic conclusions. Never states the truth directly. Implies everything. Uses gravitas and distance.
-ENGINEER — Clinical, functional, precise. Observations and measurements. No emotion. Problem-solver framing.
-BIOLOGIST — Wonder + precision. Scientific awe barely contained. Slightly fast delivery. Genuinely excited by what they're seeing.
-MUSCLE — Reactive, casual. Says exactly what the audience is thinking. Grounded, skeptical, occasionally alarmed.
-WANDERER — Irregular rhythm. Something that is still finding its position. Uncertain, searching, occasionally profound by accident.
-
-════════════════════════════════════════
 OUTPUT FORMAT
 ════════════════════════════════════════
 
-For each specimen in the roster above, generate the following block. Use the specimen name exactly as listed. Do not skip any specimens.
+Generate a full exhibit record for each specimen above. Use the specimen name exactly as listed. Do not skip any specimens. Each record follows this format:
 
 ---
 [SPECIMEN NAME]
 
-CURATOR: [1-3 sentences — metaphorical, weighted, indirect. Implies the entity's nature without stating it.]
+BEHAVIORAL NOTES:
+[2-3 sentences — observable behavioral patterns, movement, response to containment, interaction with other specimens. Clinical but not dry — the behavior should feel like it means something.]
 
-ENGINEER: [1-3 sentences — functional assessment. Notes physical properties, behavioral signatures, containment observations.]
+CURATOR INTERPRETATION:
+[2-3 sentences — metaphorical, weighted, indirect. The Curator implies the entity's deeper nature without stating it. Speaks in meaning, not fact.]
 
-BIOLOGIST: [1-3 sentences — field observation framing. Scientific wonder. Notes what makes this specimen remarkable.]
+ENGINEER ASSESSMENT:
+[2-3 sentences — functional, precise. Physical properties, containment readings, behavioral signatures that matter for operations. No emotion.]
 
-MUSCLE: [1-2 sentences — gut reaction. Casual register. What the average person would say looking at this thing.]
+BIOLOGIST ASSESSMENT:
+[2-3 sentences — scientific wonder barely contained. Field observation framing. Notes what makes this specimen remarkable as a living thing. Slightly fast, slightly awed.]
 
-WANDERER: [1-3 sentences — fragmented or searching. May address the specimen directly. Something off about the rhythm.]
+MUSCLE REACTION:
+[1-2 sentences — gut response. Casual register. What the average person would actually say looking at this thing. Grounded, sometimes alarmed, occasionally reluctant to admit it's interesting.]
+
+WANDERER OBSERVATION:
+[1-3 sentences — irregular rhythm. May address the specimen directly. Searching for something. Occasionally profound by accident.]
 ---
 
 Generate all ${members.length} specimen${members.length !== 1 ? 's' : ''}. Keep character voices consistent across the full army. Lore should feel like it belongs to the same faction — shared origin, shared strangeness, related but individually distinct.`
