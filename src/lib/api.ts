@@ -645,8 +645,9 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
             }
 
             if (existing && existing.length > 0) {
-              // Update existing exhibit with new data from MiniCodex
-              await updateExhibit(existing[0].id, exhibitData)
+              // Do not overwrite lore or exhibit_number on update
+              const { exhibit_number, lore_text, curator_interpretation, engineer_assessment, biologist_assessment, ...updateFields } = exhibitData
+              await updateExhibit(existing[0].id, updateFields)
               result.figures_updated++
             } else {
               // Create new exhibit
