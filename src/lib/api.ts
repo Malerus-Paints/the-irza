@@ -645,9 +645,11 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
             }
 
             if (existing && existing.length > 0) {
-              // Do not overwrite lore or exhibit_number on update
-              const { exhibit_number, lore_text, curator_interpretation, engineer_assessment, biologist_assessment, ...updateFields } = exhibitData
-              await updateExhibit(existing[0].id, updateFields)
+              await updateExhibit(existing[0].id, {
+                name: exhibitData.name,
+                faction_id: exhibitData.faction_id,
+                paint_scheme: exhibitData.paint_scheme,
+              })
               result.figures_updated++
             } else {
               // Create new exhibit
