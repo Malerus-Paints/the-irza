@@ -144,6 +144,76 @@ export function LoreGeneratorPage() {
     setGeneratedPrompt(prompt)
   }
 
+  function buildUpdatePrompt() {
+    if (!selectedExhibit) return
+    const name = selectedExhibit.miniature_name ?? selectedExhibit.name ?? 'UNDESIGNATED'
+    const faction = selectedFaction
+
+    const existing: string[] = []
+    const missing: string[] = []
+
+    if (selectedExhibit.lore_text?.trim()) {
+      existing.push(`BEHAVIORAL NOTES:\n${selectedExhibit.lore_text.trim()}`)
+    } else {
+      missing.push('Behavioral Notes')
+    }
+
+    if (selectedExhibit.curator_interpretation?.trim()) {
+      existing.push(`CURATOR INTERPRETATION:\n${selectedExhibit.curator_interpretation.trim()}`)
+    } else {
+      missing.push('Curator Interpretation')
+    }
+
+    if (selectedExhibit.engineer_assessment?.trim()) {
+      existing.push(`ENGINEER ASSESSMENT:\n${selectedExhibit.engineer_assessment.trim()}`)
+    } else {
+      missing.push('Engineer Assessment')
+    }
+
+    if (selectedExhibit.biologist_assessment?.trim()) {
+      existing.push(`BIOLOGIST ASSESSMENT:\n${selectedExhibit.biologist_assessment.trim()}`)
+    } else {
+      missing.push('Biologist Assessment')
+    }
+
+    // Muscle and Wanderer are never stored in DB — always missing
+    missing.push('Muscle Reaction')
+    missing.push('Wanderer Observation')
+
+    const factionBlock = faction
+      ? `FACTION CONTEXT:\n${faction.faction_id} — ${faction.name} | Domain: ${faction.domain ?? 'UNCLASSIFIED'} | Threat: ${faction.threat_level ?? 'UNCLASSIFIED'}\n${faction.lore_text?.trim() ?? ''}`
+      : ''
+
+    setGeneratedPrompt(`You are completing a partial IRZA exhibit record. Some sections have already been written — do NOT rewrite or summarize them. Generate ONLY the missing sections listed below, using the correct character voice for each.
+
+CANON RULES:
+- Never call entities "miniatures" — always "entities", "specimens", or "exhibits"
+- The true premise (ark for collapsing realities) is NEVER stated directly
+- Curator: metaphor over fact, weighted conclusions, never states directly
+- Engineer: clinical, functional, precise — numbers and observations
+- Biologist: wonder + precision, scientific awe, slightly fast delivery
+- Muscle: reactive, casual, says what the audience is thinking
+- Wanderer: irregular rhythm, uncertain, something finding its position
+${factionBlock ? `\n${factionBlock}` : ''}
+
+EXHIBIT: ${name}
+Paint scheme: ${selectedExhibit.paint_scheme ?? 'undocumented'}
+
+════════════════════════════════════════
+ALREADY WRITTEN — do not regenerate
+════════════════════════════════════════
+
+${existing.length > 0 ? existing.join('\n\n') : '[No sections completed yet]'}
+
+════════════════════════════════════════
+MISSING — generate these now
+════════════════════════════════════════
+
+${missing.map((s) => `- ${s}`).join('\n')}
+
+Write only the missing sections above, in order, using the correct voice for each. Match the tone and length of the existing sections.`)
+  }
+
   function buildArmyPrompt() {
     if (!armyFaction) return
     const members = armyMembers.map((e) => ({
@@ -377,6 +447,17 @@ export function LoreGeneratorPage() {
                   <Button onClick={buildTemplatePrompt} className="w-full justify-center">
                     ✦ BUILD PROMPT
                   </Button>
+
+                  {selectedExhibit && (
+                    selectedExhibit.lore_text ||
+                    selectedExhibit.curator_interpretation ||
+                    selectedExhibit.engineer_assessment ||
+                    selectedExhibit.biologist_assessment
+                  ) && (
+                    <Button onClick={buildUpdatePrompt} variant="ghost" className="w-full justify-center border border-[#1c1f26]">
+                      ↻ UPDATE EXISTING LORE
+                    </Button>
+                  )}
                 </>
               )}
             </>
