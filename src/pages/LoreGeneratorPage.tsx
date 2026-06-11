@@ -239,46 +239,15 @@ export function LoreGeneratorPage() {
 
               {selectedTemplate && (
                 <>
-                  <Card>
-                    <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">EXHIBIT CONTEXT</h2>
-                    <Select
-                      label="SELECT EXHIBIT"
-                      options={exhibitOptions}
-                      value={selectedExhibitId}
-                      onChange={(e) => {
-                        setSelectedExhibitId(e.target.value)
-                        setGeneratedPrompt('')
-                      }}
-                    />
-                    {selectedExhibit && (
-                      <div className="mt-3 p-3 bg-[#0a0c10] rounded border border-[#1c1f26] space-y-1">
-                        <div className="font-mono text-[10px] text-[#66ff99] tracking-widest">{selectedExhibit.miniature_name}</div>
-                        <div className="font-mono text-[10px] text-[#5a6175]">
-                          {selectedExhibit.faction?.faction_id} — {selectedExhibit.faction?.name}
-                          {selectedExhibit.squad_id && selectedSquad && ` · SQUAD ${selectedSquad.squad_id}`}
-                        </div>
-                        {selectedExhibit.paint_scheme && (
-                          <div className="font-mono text-[10px] text-[#3d4352] pt-1">
-                            PAINT: {selectedExhibit.paint_scheme}
-                          </div>
-                        )}
-                        {selectedExhibit.base_size && (
-                          <div className="font-mono text-[10px] text-[#3d4352]">
-                            BASE: {selectedExhibit.base_size}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </Card>
-
-                  {!selectedExhibitId && (
+                  {/* Faction templates: show faction picker directly */}
+                  {selectedTemplate.template_type === 'faction' ? (
                     <Card>
-                      <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">FACTION CONTEXT</h2>
+                      <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">FACTION</h2>
                       <Select
-                        label="INJECT FACTION"
+                        label="SELECT FACTION"
                         options={factionOptions}
                         value={selectedFactionId}
-                        onChange={(e) => setSelectedFactionId(e.target.value)}
+                        onChange={(e) => { setSelectedFactionId(e.target.value); setGeneratedPrompt('') }}
                       />
                       {selectedFaction && (
                         <div className="mt-3 p-3 bg-[#0a0c10] rounded border border-[#1c1f26] space-y-1">
@@ -289,9 +258,72 @@ export function LoreGeneratorPage() {
                           <div className="font-mono text-[10px] text-[#3d4352]">
                             ORIGIN: {selectedFaction.origin_reality_status.toUpperCase()}
                           </div>
+                          {selectedFaction.lore_text && (
+                            <div className="font-mono text-[10px] text-[#3d4352] mt-2 line-clamp-3">
+                              {selectedFaction.lore_text}
+                            </div>
+                          )}
                         </div>
                       )}
                     </Card>
+                  ) : (
+                    /* All other templates: show exhibit picker, faction optional if no exhibit */
+                    <>
+                      <Card>
+                        <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">EXHIBIT CONTEXT</h2>
+                        <Select
+                          label="SELECT EXHIBIT"
+                          options={exhibitOptions}
+                          value={selectedExhibitId}
+                          onChange={(e) => {
+                            setSelectedExhibitId(e.target.value)
+                            setGeneratedPrompt('')
+                          }}
+                        />
+                        {selectedExhibit && (
+                          <div className="mt-3 p-3 bg-[#0a0c10] rounded border border-[#1c1f26] space-y-1">
+                            <div className="font-mono text-[10px] text-[#66ff99] tracking-widest">{selectedExhibit.miniature_name}</div>
+                            <div className="font-mono text-[10px] text-[#5a6175]">
+                              {selectedExhibit.faction?.faction_id} — {selectedExhibit.faction?.name}
+                              {selectedExhibit.squad_id && selectedSquad && ` · SQUAD ${selectedSquad.squad_id}`}
+                            </div>
+                            {selectedExhibit.paint_scheme && (
+                              <div className="font-mono text-[10px] text-[#3d4352] pt-1">
+                                PAINT: {selectedExhibit.paint_scheme}
+                              </div>
+                            )}
+                            {selectedExhibit.base_size && (
+                              <div className="font-mono text-[10px] text-[#3d4352]">
+                                BASE: {selectedExhibit.base_size}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Card>
+
+                      {!selectedExhibitId && (
+                        <Card>
+                          <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">FACTION CONTEXT</h2>
+                          <Select
+                            label="INJECT FACTION"
+                            options={factionOptions}
+                            value={selectedFactionId}
+                            onChange={(e) => setSelectedFactionId(e.target.value)}
+                          />
+                          {selectedFaction && (
+                            <div className="mt-3 p-3 bg-[#0a0c10] rounded border border-[#1c1f26] space-y-1">
+                              <div className="font-mono text-[10px] text-[#66ff99] tracking-widest">{selectedFaction.faction_id} — {selectedFaction.name}</div>
+                              <div className="font-mono text-[10px] text-[#5a6175]">
+                                {selectedFaction.domain} · {selectedFaction.threat_level} · {selectedFaction.collective_or_individual}
+                              </div>
+                              <div className="font-mono text-[10px] text-[#3d4352]">
+                                ORIGIN: {selectedFaction.origin_reality_status.toUpperCase()}
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                      )}
+                    </>
                   )}
 
                   {selectedSquad && (
