@@ -188,8 +188,8 @@ export function LoreGeneratorPage() {
       missing.push('Muscle Assessment')
     }
 
-    if (selectedExhibit.wanderer_footnote?.trim()) {
-      existing.push(`WANDERER FOOTNOTE:\n${selectedExhibit.wanderer_footnote.trim()}`)
+    if (selectedExhibit.footnotes?.trim()) {
+      existing.push(`WANDERER FOOTNOTE:\n${selectedExhibit.footnotes.trim()}`)
     } else {
       missing.push('Wanderer Footnote')
     }
@@ -270,8 +270,8 @@ Write only the missing sections above, in order, using the correct voice for eac
       missing.push('Muscle Assessment')
     }
 
-    if (selectedFaction.wanderer_footnote?.trim()) {
-      existing.push(`WANDERER FOOTNOTE:\n${selectedFaction.wanderer_footnote.trim()}`)
+    if (selectedFaction.footnotes?.trim()) {
+      existing.push(`WANDERER FOOTNOTE:\n${selectedFaction.footnotes.trim()}`)
     } else {
       missing.push('Wanderer Footnote')
     }

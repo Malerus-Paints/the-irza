@@ -26,7 +26,7 @@ export interface Faction {
   biologist_assessment: string | null
   wanderer_assessment: string | null
   muscle_assessment: string | null
-  wanderer_footnote: string | null
+  footnotes: string | null
   drive_doc_id: string | null
   drive_doc_url: string | null
   notes: string | null
@@ -52,7 +52,7 @@ export interface Squad {
   biologist_assessment: string | null
   wanderer_assessment: string | null
   muscle_assessment: string | null
-  wanderer_footnote: string | null
+  footnotes: string | null
   drive_doc_id: string | null
   drive_doc_url: string | null
   status: EntryStatus
@@ -87,7 +87,7 @@ export interface Exhibit {
   biologist_assessment: string | null
   wanderer_assessment: string | null
   muscle_assessment: string | null
-  wanderer_footnote: string | null
+  footnotes: string | null
   origin_reality_status: OriginRealityStatus
   backlog_release: boolean
   drive_doc_id: string | null
