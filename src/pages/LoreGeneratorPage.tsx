@@ -214,6 +214,61 @@ ${missing.map((s) => `- ${s}`).join('\n')}
 Write only the missing sections above, in order, using the correct voice for each. Match the tone and length of the existing sections.`)
   }
 
+  function buildFactionUpdatePrompt() {
+    if (!selectedFaction) return
+
+    const existing: string[] = []
+    const missing: string[] = []
+
+    if (selectedFaction.lore_text?.trim()) {
+      existing.push(`ORIGIN SUMMARY / BEHAVIORAL PATTERNS:\n${selectedFaction.lore_text.trim()}`)
+    } else {
+      missing.push('Origin Summary & Behavioral Patterns')
+    }
+
+    // Assessments are never stored on factions — always missing
+    missing.push('Curator Interpretation')
+    missing.push('System Status Classification')
+    missing.push('Engineer Assessment')
+    missing.push('Biologist Assessment')
+    missing.push('Wanderer Assessment')
+    missing.push('Muscle Assessment')
+
+    setGeneratedPrompt(`You are completing a partial IRZA faction record. Some sections have already been written — do NOT rewrite or summarize them. Generate ONLY the missing sections listed below, using the correct character voice for each.
+
+CANON RULES:
+- Factions are collective behavioral systems — patterns across multiple entities from the same origin reality
+- Most factions come from collapsed or collapsing realities
+- Never state the true premise directly
+- Curator: metaphor over fact, weighted conclusions, never states directly
+- Engineer: clinical, functional, precise — numbers and observations
+- Biologist: wonder + precision, scientific awe, slightly fast delivery
+- Muscle: reactive, casual, says what the audience is thinking
+- Wanderer: irregular rhythm, uncertain, something finding its position
+- System: ALL CAPS, fragmented outputs, never emotional
+
+FACTION: ${selectedFaction.faction_id} — ${selectedFaction.name}
+Domain: ${selectedFaction.domain ?? 'UNCLASSIFIED'} | Threat Level: ${selectedFaction.threat_level ?? 'UNCLASSIFIED'}
+Behavioral Classification: ${selectedFaction.behavioral_classification ?? 'UNCLASSIFIED'}
+Collective/Individual: ${selectedFaction.collective_or_individual ?? 'UNCLASSIFIED'}
+Origin Reality Status: ${selectedFaction.origin_reality_status.toUpperCase()}
+Notes: ${selectedFaction.notes ?? 'None.'}
+
+════════════════════════════════════════
+ALREADY WRITTEN — do not regenerate
+════════════════════════════════════════
+
+${existing.length > 0 ? existing.join('\n\n') : '[No sections completed yet]'}
+
+════════════════════════════════════════
+MISSING — generate these now
+════════════════════════════════════════
+
+${missing.map((s) => `- ${s}`).join('\n')}
+
+Write only the missing sections above, in order, using the correct voice for each. Match the tone and length of the existing sections.`)
+  }
+
   function buildArmyPrompt() {
     if (!armyFaction) return
     const members = armyMembers.map((e) => ({
@@ -447,6 +502,12 @@ Write only the missing sections above, in order, using the correct voice for eac
                   <Button onClick={buildTemplatePrompt} className="w-full justify-center">
                     ✦ BUILD PROMPT
                   </Button>
+
+                  {selectedTemplate.template_type === 'faction' && selectedFaction?.lore_text && (
+                    <Button onClick={buildFactionUpdatePrompt} variant="ghost" className="w-full justify-center border border-[#1c1f26]">
+                      ↻ UPDATE EXISTING LORE
+                    </Button>
+                  )}
 
                   {selectedExhibit && (
                     selectedExhibit.lore_text ||
