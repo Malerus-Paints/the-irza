@@ -1,9 +1,66 @@
 import { useState } from 'react'
-import { useLoreTemplates, useFactions, useSquads, useExhibits } from '../hooks/useData'
+import { useLoreTemplates, useFactions, useSquads, useExhibits, useUpdateExhibit, useUpdateFaction } from '../hooks/useData'
 import { Spinner, PageHeader, Card, Button, Textarea, Select } from '../components/ui'
-import type { LoreTemplate, Faction } from '../types'
+import type { LoreTemplate, Faction, Exhibit } from '../types'
 
 type Mode = 'template' | 'full-army'
+
+interface ParsedLore {
+  lore_text?: string
+  curator_interpretation?: string
+  engineer_assessment?: string
+  biologist_assessment?: string
+  wanderer_assessment?: string
+  muscle_assessment?: string
+  footnotes?: string
+}
+
+const LORE_SECTIONS: Array<{ pattern: RegExp; field: keyof ParsedLore }> = [
+  { pattern: /^BEHAVIORAL NOTES\s*:/im,                          field: 'lore_text' },
+  { pattern: /^CURATOR INTERPRETATION\s*:/im,                    field: 'curator_interpretation' },
+  { pattern: /^ENGINEER (?:ASSESSMENT|CONCLUSION|NOTE)\s*:/im,   field: 'engineer_assessment' },
+  { pattern: /^BIOLOGIST (?:ASSESSMENT|NOTE)\s*:/im,             field: 'biologist_assessment' },
+  { pattern: /^WANDERER (?:ASSESSMENT|OBSERVATION|NOTE)\s*:/im,  field: 'wanderer_assessment' },
+  { pattern: /^MUSCLE (?:ASSESSMENT|REACTION)\s*:/im,            field: 'muscle_assessment' },
+  { pattern: /^(?:WANDERER )?FOOTNOTES?\s*:/im,                  field: 'footnotes' },
+]
+
+function parseLoreResponse(text: string): ParsedLore {
+  const matches: Array<{ index: number; end: number; field: keyof ParsedLore }> = []
+
+  for (const { pattern, field } of LORE_SECTIONS) {
+    const match = pattern.exec(text)
+    if (match) {
+      matches.push({ index: match.index, end: match.index + match[0].length, field })
+    }
+  }
+
+  matches.sort((a, b) => a.index - b.index)
+
+  const result: ParsedLore = {}
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].end
+    const end = i + 1 < matches.length ? matches[i + 1].index : text.length
+    const raw = text.slice(start, end)
+    const cleaned = raw
+      .replace(/^[═\-=─\s]+$/gm, '')  // strip separator lines
+      .replace(/\n{3,}/g, '\n\n')      // collapse excess blank lines
+      .trim()
+    if (cleaned) result[matches[i].field] = cleaned
+  }
+
+  return result
+}
+
+const FIELD_LABELS: Record<keyof ParsedLore, string> = {
+  lore_text: 'BEHAVIORAL NOTES',
+  curator_interpretation: 'CURATOR INTERPRETATION',
+  engineer_assessment: 'ENGINEER ASSESSMENT',
+  biologist_assessment: 'BIOLOGIST ASSESSMENT',
+  wanderer_assessment: 'WANDERER ASSESSMENT',
+  muscle_assessment: 'MUSCLE ASSESSMENT',
+  footnotes: 'FOOTNOTES',
+}
 
 function buildFullArmyPrompt(faction: Faction, members: { name: string; lore_text: string | null }[]): string {
   const roster = members
@@ -88,6 +145,14 @@ export function LoreGeneratorPage() {
 
   const [generatedPrompt, setGeneratedPrompt] = useState('')
   const [copied, setCopied] = useState(false)
+
+  // Parse & save state
+  const [pastedResponse, setPastedResponse] = useState('')
+  const [parsedLore, setParsedLore] = useState<ParsedLore | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+
+  const updateExhibit = useUpdateExhibit()
+  const updateFaction = useUpdateFaction()
 
   if (loadingTemplates) return <Spinner />
 
@@ -327,6 +392,34 @@ Write only the missing sections above, in order, using the correct voice for eac
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
+
+  function handleParse() {
+    const result = parseLoreResponse(pastedResponse)
+    setParsedLore(Object.keys(result).length > 0 ? result : {})
+    setSaveStatus('idle')
+  }
+
+  async function handleSaveToDb() {
+    if (!parsedLore) return
+    setSaveStatus('saving')
+    try {
+      if (selectedExhibit) {
+        await updateExhibit.mutateAsync({ id: selectedExhibit.id, payload: parsedLore as Partial<Exhibit> })
+      } else if (selectedFaction && selectedTemplate?.template_type === 'faction') {
+        await updateFaction.mutateAsync({ id: selectedFaction.id, payload: parsedLore as Partial<Faction> })
+      }
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    } catch {
+      setSaveStatus('error')
+    }
+  }
+
+  const saveTarget = selectedExhibit
+    ? (selectedExhibit.miniature_name ?? selectedExhibit.name)
+    : selectedTemplate?.template_type === 'faction' && selectedFaction
+    ? selectedFaction.name
+    : null
 
   function switchMode(m: Mode) {
     setMode(m)
@@ -694,6 +787,77 @@ Write only the missing sections above, in order, using the correct voice for eac
               <p className="font-mono text-[10px] text-[#3d4352] mt-2 tracking-widest">
                 PASTE INTO NEW CLAUDE CONVERSATION — CONTEXT PRE-LOADED
               </p>
+            </Card>
+          )}
+
+          {/* Paste & save panel — only in template mode when a target is selected */}
+          {mode === 'template' && saveTarget && (
+            <Card>
+              <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-1">PASTE RESPONSE</h2>
+              <p className="font-mono text-[10px] text-[#3d4352] tracking-widest mb-3">
+                TARGET: <span className="text-[#dde0e6]">{saveTarget.toUpperCase()}</span>
+              </p>
+
+              <Textarea
+                value={pastedResponse}
+                onChange={(e) => { setPastedResponse(e.target.value); setParsedLore(null); setSaveStatus('idle') }}
+                placeholder="Paste Claude's response here..."
+                className="min-h-[160px] text-xs font-mono mb-3"
+              />
+
+              <Button
+                onClick={handleParse}
+                disabled={!pastedResponse.trim()}
+                variant="ghost"
+                className="w-full justify-center border border-[#1c1f26] mb-3"
+              >
+                ⟳ PARSE SECTIONS
+              </Button>
+
+              {parsedLore !== null && (
+                <>
+                  <div className="space-y-2 mb-3">
+                    {Object.keys(FIELD_LABELS).map((key) => {
+                      const field = key as keyof ParsedLore
+                      const found = !!parsedLore[field]
+                      return (
+                        <div key={field} className="flex items-start gap-2">
+                          <span className={`font-mono text-[10px] mt-0.5 ${found ? 'text-[#66ff99]' : 'text-[#3d4352]'}`}>
+                            {found ? '✓' : '—'}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className={`font-mono text-[10px] tracking-widest ${found ? 'text-[#dde0e6]' : 'text-[#3d4352]'}`}>
+                              {FIELD_LABELS[field]}
+                            </div>
+                            {found && (
+                              <div className="font-mono text-[9px] text-[#5a6175] line-clamp-2 mt-0.5">
+                                {parsedLore[field]}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {Object.keys(parsedLore).length === 0 ? (
+                    <p className="font-mono text-[10px] text-[#e86b3a] tracking-widest">
+                      NO SECTIONS DETECTED — CHECK FORMATTING
+                    </p>
+                  ) : (
+                    <Button
+                      onClick={handleSaveToDb}
+                      disabled={saveStatus === 'saving'}
+                      className="w-full justify-center"
+                    >
+                      {saveStatus === 'saving' ? '...' :
+                       saveStatus === 'saved' ? '✓ SAVED' :
+                       saveStatus === 'error' ? '✕ ERROR — RETRY' :
+                       `↓ SAVE TO DATABASE`}
+                    </Button>
+                  )}
+                </>
+              )}
             </Card>
           )}
 
