@@ -21,6 +21,12 @@ export interface Faction {
   exhibits_catalogued: number
   origin_reality_status: OriginRealityStatus
   lore_text: string | null
+  curator_interpretation: string | null
+  engineer_assessment: string | null
+  biologist_assessment: string | null
+  wanderer_assessment: string | null
+  muscle_assessment: string | null
+  wanderer_footnote: string | null
   drive_doc_id: string | null
   drive_doc_url: string | null
   notes: string | null
@@ -41,6 +47,12 @@ export interface Squad {
   collective_behavior_type: string | null
   system_status: string
   lore_text: string | null
+  curator_interpretation: string | null
+  engineer_assessment: string | null
+  biologist_assessment: string | null
+  wanderer_assessment: string | null
+  muscle_assessment: string | null
+  wanderer_footnote: string | null
   drive_doc_id: string | null
   drive_doc_url: string | null
   status: EntryStatus
@@ -73,6 +85,9 @@ export interface Exhibit {
   curator_interpretation: string | null
   engineer_assessment: string | null
   biologist_assessment: string | null
+  wanderer_assessment: string | null
+  muscle_assessment: string | null
+  wanderer_footnote: string | null
   origin_reality_status: OriginRealityStatus
   backlog_release: boolean
   drive_doc_id: string | null

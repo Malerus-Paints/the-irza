@@ -176,9 +176,23 @@ export function LoreGeneratorPage() {
       missing.push('Biologist Assessment')
     }
 
-    // Muscle and Wanderer are never stored in DB — always missing
-    missing.push('Muscle Reaction')
-    missing.push('Wanderer Observation')
+    if (selectedExhibit.wanderer_assessment?.trim()) {
+      existing.push(`WANDERER ASSESSMENT:\n${selectedExhibit.wanderer_assessment.trim()}`)
+    } else {
+      missing.push('Wanderer Assessment')
+    }
+
+    if (selectedExhibit.muscle_assessment?.trim()) {
+      existing.push(`MUSCLE ASSESSMENT:\n${selectedExhibit.muscle_assessment.trim()}`)
+    } else {
+      missing.push('Muscle Assessment')
+    }
+
+    if (selectedExhibit.wanderer_footnote?.trim()) {
+      existing.push(`WANDERER FOOTNOTE:\n${selectedExhibit.wanderer_footnote.trim()}`)
+    } else {
+      missing.push('Wanderer Footnote')
+    }
 
     const factionBlock = faction
       ? `FACTION CONTEXT:\n${faction.faction_id} — ${faction.name} | Domain: ${faction.domain ?? 'UNCLASSIFIED'} | Threat: ${faction.threat_level ?? 'UNCLASSIFIED'}\n${faction.lore_text?.trim() ?? ''}`
@@ -226,13 +240,43 @@ Write only the missing sections above, in order, using the correct voice for eac
       missing.push('Origin Summary & Behavioral Patterns')
     }
 
-    // Assessments are never stored on factions — always missing
-    missing.push('Curator Interpretation')
+    if (selectedFaction.curator_interpretation?.trim()) {
+      existing.push(`CURATOR INTERPRETATION:\n${selectedFaction.curator_interpretation.trim()}`)
+    } else {
+      missing.push('Curator Interpretation')
+    }
+
+    if (selectedFaction.engineer_assessment?.trim()) {
+      existing.push(`ENGINEER ASSESSMENT:\n${selectedFaction.engineer_assessment.trim()}`)
+    } else {
+      missing.push('Engineer Assessment')
+    }
+
+    if (selectedFaction.biologist_assessment?.trim()) {
+      existing.push(`BIOLOGIST ASSESSMENT:\n${selectedFaction.biologist_assessment.trim()}`)
+    } else {
+      missing.push('Biologist Assessment')
+    }
+
+    if (selectedFaction.wanderer_assessment?.trim()) {
+      existing.push(`WANDERER ASSESSMENT:\n${selectedFaction.wanderer_assessment.trim()}`)
+    } else {
+      missing.push('Wanderer Assessment')
+    }
+
+    if (selectedFaction.muscle_assessment?.trim()) {
+      existing.push(`MUSCLE ASSESSMENT:\n${selectedFaction.muscle_assessment.trim()}`)
+    } else {
+      missing.push('Muscle Assessment')
+    }
+
+    if (selectedFaction.wanderer_footnote?.trim()) {
+      existing.push(`WANDERER FOOTNOTE:\n${selectedFaction.wanderer_footnote.trim()}`)
+    } else {
+      missing.push('Wanderer Footnote')
+    }
+
     missing.push('System Status Classification')
-    missing.push('Engineer Assessment')
-    missing.push('Biologist Assessment')
-    missing.push('Wanderer Assessment')
-    missing.push('Muscle Assessment')
 
     setGeneratedPrompt(`You are completing a partial IRZA faction record. Some sections have already been written — do NOT rewrite or summarize them. Generate ONLY the missing sections listed below, using the correct character voice for each.
 
@@ -503,17 +547,20 @@ Write only the missing sections above, in order, using the correct voice for eac
                     ✦ BUILD PROMPT
                   </Button>
 
-                  {selectedTemplate.template_type === 'faction' && selectedFaction?.lore_text && (
+                  {selectedTemplate.template_type === 'faction' && selectedFaction && (
+                    selectedFaction.lore_text || selectedFaction.curator_interpretation ||
+                    selectedFaction.engineer_assessment || selectedFaction.biologist_assessment ||
+                    selectedFaction.wanderer_assessment || selectedFaction.muscle_assessment
+                  ) && (
                     <Button onClick={buildFactionUpdatePrompt} variant="ghost" className="w-full justify-center border border-[#1c1f26]">
                       ↻ UPDATE EXISTING LORE
                     </Button>
                   )}
 
                   {selectedExhibit && (
-                    selectedExhibit.lore_text ||
-                    selectedExhibit.curator_interpretation ||
-                    selectedExhibit.engineer_assessment ||
-                    selectedExhibit.biologist_assessment
+                    selectedExhibit.lore_text || selectedExhibit.curator_interpretation ||
+                    selectedExhibit.engineer_assessment || selectedExhibit.biologist_assessment ||
+                    selectedExhibit.wanderer_assessment || selectedExhibit.muscle_assessment
                   ) && (
                     <Button onClick={buildUpdatePrompt} variant="ghost" className="w-full justify-center border border-[#1c1f26]">
                       ↻ UPDATE EXISTING LORE
