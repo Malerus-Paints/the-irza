@@ -91,7 +91,7 @@ export function FactionDrawer({ faction, onClose }: Props) {
       updateFaction.mutate({ id: faction!.id, payload }, { onSuccess: onClose })
     } else {
       createFaction.mutate(
-        { ...payload, exhibits_catalogued: 0, drive_doc_id: null, drive_doc_url: null },
+        { ...payload, exhibits_catalogued: 0, drive_doc_id: null, drive_doc_url: null, curator_interpretation: null, engineer_assessment: null, biologist_assessment: null, wanderer_assessment: null, muscle_assessment: null, footnotes: null },
         { onSuccess: onClose }
       )
     }

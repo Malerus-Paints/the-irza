@@ -135,6 +135,9 @@ export function ExhibitDrawer({ exhibit, onClose, sequentialNumber }: Props) {
       createExhibit.mutate(
         {
           ...payload,
+          wanderer_assessment: null,
+          muscle_assessment: null,
+          footnotes: null,
           squad_id: null,
           episode_number: null,
           posted_date: null,

@@ -503,6 +503,12 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
             drive_doc_url: null,
             notes: null,
             status: 'drafted',
+            curator_interpretation: null,
+            engineer_assessment: null,
+            biologist_assessment: null,
+            wanderer_assessment: null,
+            muscle_assessment: null,
+            footnotes: null,
           })
 
           factionId = newFaction.id
@@ -586,6 +592,12 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
                 drive_doc_id: groupMinitrackId,
                 drive_doc_url: null,
                 status: 'drafted',
+                curator_interpretation: null,
+                engineer_assessment: null,
+                biologist_assessment: null,
+                wanderer_assessment: null,
+                muscle_assessment: null,
+                footnotes: null,
               })
               result.squads_created++
               nextSquadNum++
@@ -637,6 +649,9 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               curator_interpretation: null,
               engineer_assessment: null,
               biologist_assessment: null,
+              wanderer_assessment: null,
+              muscle_assessment: null,
+              footnotes: null,
               origin_reality_status: 'unknown' as const,
               backlog_release: false,
               drive_doc_id: minitrackId,
