@@ -5,7 +5,14 @@ export type ArchiveStatus = 'UNCLASSIFIED' | 'ACTIVE' | 'ARCHIVED' | 'SCHEMA MIS
 export type ThreatLevel = 'NONE' | 'LOW' | 'MODERATE' | 'HIGH' | 'UNRESOLVABLE'
 export type OriginRealityStatus = 'unknown' | 'collapsed' | 'collapsing' | 'stable'
 export type EpisodeStatus = 'planned' | 'scripted' | 'filmed' | 'posted'
-export type RuntimeClass = 'SHORT' | 'STANDARD' | 'EVENT'
+export type RuntimeClass = 'SHORT' | 'STANDARD' | 'LONG' | 'EVENT'
+
+export const RUNTIME_CLASS_LABELS: Record<RuntimeClass, string> = {
+  SHORT:    'SHORT — 30–40s',
+  STANDARD: 'STANDARD — 2–3min',
+  LONG:     'LONG — 3min+',
+  EVENT:    'EVENT — as needed',
+}
 
 // ─── Registry Types ───────────────────────────────────────────────────────────
 
@@ -324,4 +331,25 @@ export const EPISODE_TYPE_LABELS: Record<string, string> = {
   'grunt_work':         'Grunt Work',
   'copycat':            'Copycat',
   'wanderer':           'Wanderer',
+  'archive_brief':      'Archive Brief',
+}
+
+// Primary voice pair: System (explains) + Muscle (doesn't fully get it).
+// Curator and others appear briefly as they are introduced to the series.
+export const EPISODE_TYPE_NOTES: Record<string, string> = {
+  'archive_brief': 'System explains facility/archive mechanics to Muscle. Curator and others appear in brief interjections as they are introduced. No exhibit focus.',
+}
+
+export const EPISODE_TYPE_RUNTIME: Record<string, RuntimeClass> = {
+  'arc':                'EVENT',
+  'classifying':        'STANDARD',
+  'reclassification':   'STANDARD',
+  'behavior_collective':'STANDARD',
+  'system_alert':       'SHORT',
+  'engineer_analysis':  'STANDARD',
+  'biologist_analysis': 'STANDARD',
+  'grunt_work':         'SHORT',
+  'copycat':            'LONG',
+  'wanderer':           'STANDARD',
+  'archive_brief':      'SHORT',
 }

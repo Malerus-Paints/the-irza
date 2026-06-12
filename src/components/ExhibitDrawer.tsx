@@ -302,9 +302,10 @@ export function ExhibitDrawer({ exhibit, onClose }: Props) {
                   onChange={(v) => set('runtime_class', v)}
                   options={[
                     { value: '', label: '—' },
-                    { value: 'SHORT', label: 'SHORT' },
-                    { value: 'STANDARD', label: 'STANDARD' },
-                    { value: 'EVENT', label: 'EVENT' },
+                    { value: 'SHORT', label: 'SHORT — 30–40s' },
+                    { value: 'STANDARD', label: 'STANDARD — 2–3min' },
+                    { value: 'LONG', label: 'LONG — 3min+' },
+                    { value: 'EVENT', label: 'EVENT — as needed' },
                   ]}
                 />
               </Field>

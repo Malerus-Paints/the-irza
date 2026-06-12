@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useEpisodes, useUpdateEpisode, useCreateEpisode } from '../hooks/useData'
 import { Spinner } from '../components/ui'
-import { EPISODE_TYPE_LABELS } from '../types'
+import { EPISODE_TYPE_LABELS, EPISODE_TYPE_RUNTIME } from '../types'
 import type { Episode, EpisodeStatus, RuntimeClass } from '../types'
 
 const CHARACTERS = [
@@ -385,7 +385,10 @@ function NewEpisodeForm({
             <div className="font-mono text-[10px] text-[#3d4352] tracking-widest mb-1">TYPE</div>
             <select
               value={form.episode_type}
-              onChange={(e) => onChange({ episode_type: e.target.value })}
+              onChange={(e) => {
+                const t = e.target.value
+                onChange({ episode_type: t, ...(EPISODE_TYPE_RUNTIME[t] ? { runtime_class: EPISODE_TYPE_RUNTIME[t] } : {}) })
+              }}
               className="w-full bg-[#111318] border border-[#1c1f26] rounded px-3 py-2 text-sm text-[#dde0e6] font-sans focus:outline-none focus:border-[#66ff99]/40"
             >
               <option value="">— TYPE —</option>
@@ -402,9 +405,10 @@ function NewEpisodeForm({
               className="w-full bg-[#111318] border border-[#1c1f26] rounded px-3 py-2 text-sm text-[#dde0e6] font-sans focus:outline-none focus:border-[#66ff99]/40"
             >
               <option value="">— RUNTIME —</option>
-              <option value="SHORT">SHORT</option>
-              <option value="STANDARD">STANDARD</option>
-              <option value="EVENT">EVENT</option>
+              <option value="SHORT">SHORT — 30–40s</option>
+              <option value="STANDARD">STANDARD — 2–3min</option>
+              <option value="LONG">LONG — 3min+</option>
+              <option value="EVENT">EVENT — as needed</option>
             </select>
           </div>
         </div>

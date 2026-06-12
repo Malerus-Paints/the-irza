@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useEpisodes, useCreateEpisode } from '../hooks/useData'
 import { Spinner, EmptyState, PageHeader, Card, Button } from '../components/ui'
 import { EpisodeDetailPanel } from '../components/EpisodeDetailPanel'
-import { EPISODE_TYPE_LABELS } from '../types'
+import { EPISODE_TYPE_LABELS, EPISODE_TYPE_RUNTIME } from '../types'
 import type { Episode, EpisodeStatus, RuntimeClass } from '../types'
 
 // ─── Episode meta computation ─────────────────────────────────────────────────
@@ -97,7 +97,7 @@ const STATUS_COLORS: Record<EpisodeStatus, string> = {
   posted:   'text-[#66ff99]',
 }
 
-const RUNTIME_CLASSES: RuntimeClass[] = ['SHORT', 'STANDARD', 'EVENT']
+const RUNTIME_CLASSES: RuntimeClass[] = ['SHORT', 'STANDARD', 'LONG', 'EVENT']
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -183,7 +183,10 @@ export function EpisodesPage() {
                 <label className="font-mono text-[10px] text-[#5a6175] tracking-widest block mb-1">EPISODE TYPE</label>
                 <select
                   value={formData.episode_type}
-                  onChange={(e) => setFormData({ ...formData, episode_type: e.target.value })}
+                  onChange={(e) => {
+                    const t = e.target.value
+                    setFormData({ ...formData, episode_type: t, runtime_class: EPISODE_TYPE_RUNTIME[t] ?? formData.runtime_class })
+                  }}
                   className="w-full bg-[#0a0c10] border border-[#1c1f26] rounded px-3 py-2 text-sm text-[#dde0e6] focus:outline-none focus:border-[#66ff99]/40"
                 >
                   <option value="">— TYPE —</option>
