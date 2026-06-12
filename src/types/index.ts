@@ -328,16 +328,17 @@ export const EPISODE_TYPE_LABELS: Record<string, string> = {
   'system_alert':       'System Alert',
   'engineer_analysis':  'Engineer Analysis',
   'biologist_analysis': 'Biologist Analysis',
-  'grunt_work':         'Grunt Work',
   'copycat':            'Copycat',
   'wanderer':           'Wanderer',
-  'archive_brief':      'Archive Brief',
+  'duty_log':           'Duty Log',
 }
 
-// Primary voice pair: System (explains) + Muscle (doesn't fully get it).
-// Curator and others appear briefly as they are introduced to the series.
+// Muscle's ground-level facility log. Two flavors, one type:
+// — Muscle initiates (does something, System reacts/corrects/explains)
+// — System assigns (Muscle executes, asks questions along the way)
+// SHORT runtime. No exhibit focus. Regular-person POV on archive operations.
 export const EPISODE_TYPE_NOTES: Record<string, string> = {
-  'archive_brief': 'System explains facility/archive mechanics to Muscle. Curator and others appear in brief interjections as they are introduced. No exhibit focus.',
+  'duty_log': "Muscle's operational log. Either Muscle acts and System reacts, or System assigns and Muscle pushes back. Both are his world — ground level, facility ops, no exhibit focus.",
 }
 
 export const EPISODE_TYPE_RUNTIME: Record<string, RuntimeClass> = {
@@ -348,8 +349,7 @@ export const EPISODE_TYPE_RUNTIME: Record<string, RuntimeClass> = {
   'system_alert':       'SHORT',
   'engineer_analysis':  'STANDARD',
   'biologist_analysis': 'STANDARD',
-  'grunt_work':         'SHORT',
   'copycat':            'LONG',
   'wanderer':           'STANDARD',
-  'archive_brief':      'SHORT',
+  'duty_log':           'SHORT',
 }
