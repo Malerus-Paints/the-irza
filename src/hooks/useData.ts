@@ -169,6 +169,15 @@ export function useEpisodePhotos(episodeId?: string) {
   })
 }
 
+export function useExhibitPhotos(exhibitIds: string[]) {
+  const key = [...exhibitIds].sort().join(',')
+  return useQuery({
+    queryKey: ['exhibit_photos', key],
+    queryFn: () => api.getEpisodePhotosByExhibitIds(exhibitIds),
+    enabled: exhibitIds.length > 0,
+  })
+}
+
 export function useCreateEpisodePhoto() {
   const qc = useQueryClient()
   return useMutation({

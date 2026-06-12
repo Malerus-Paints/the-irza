@@ -214,6 +214,23 @@ export async function getEpisodePhotos(episodeId?: string): Promise<EpisodePhoto
   return data ?? []
 }
 
+export async function getEpisodePhotosByExhibitIds(exhibitIds: string[]): Promise<EpisodePhoto[]> {
+  if (exhibitIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('episode_photos')
+    .select(EPISODE_PHOTO_SELECT)
+    .in('exhibit_id', exhibitIds)
+    .order('photo_role')
+  if (error) throw error
+  return data ?? []
+}
+
+export function getExhibitPhotoPublicUrl(filePath: string): string {
+  if (filePath.startsWith('http')) return filePath
+  const { data } = supabase.storage.from('episode-photos').getPublicUrl(filePath)
+  return data.publicUrl
+}
+
 export async function createEpisodePhoto(
   payload: Omit<EpisodePhoto, 'id' | 'created_at' | 'episode' | 'exhibit'>
 ): Promise<EpisodePhoto> {

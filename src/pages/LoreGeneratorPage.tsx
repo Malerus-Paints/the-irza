@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useLoreTemplates, useFactions, useSquads, useExhibits, useUpdateExhibit, useUpdateFaction } from '../hooks/useData'
+import { useLoreTemplates, useFactions, useSquads, useExhibits, useUpdateExhibit, useUpdateFaction, useExhibitPhotos } from '../hooks/useData'
+import { getExhibitPhotoPublicUrl } from '../lib/api'
 import { Spinner, PageHeader, Card, Button, Textarea, Select } from '../components/ui'
 import type { LoreTemplate, Faction, Exhibit } from '../types'
 
@@ -25,6 +26,28 @@ const LORE_SECTIONS: Array<{ pattern: RegExp; field: keyof ParsedLore }> = [
   { pattern: /^(?:WANDERER )?FOOTNOTES?\s*:/im,                  field: 'footnotes' },
 ]
 
+const LORE_FIELDS: { key: keyof ParsedLore; abbrev: string; label: string }[] = [
+  { key: 'lore_text',               abbrev: 'B', label: 'BEHAVIORAL NOTES' },
+  { key: 'curator_interpretation',  abbrev: 'C', label: 'CURATOR' },
+  { key: 'engineer_assessment',     abbrev: 'E', label: 'ENGINEER' },
+  { key: 'biologist_assessment',    abbrev: 'I', label: 'BIOLOGIST' },
+  { key: 'wanderer_assessment',     abbrev: 'W', label: 'WANDERER' },
+  { key: 'muscle_assessment',       abbrev: 'M', label: 'MUSCLE' },
+  { key: 'footnotes',               abbrev: 'F', label: 'FOOTNOTES' },
+]
+
+const FIELD_LABELS: Record<keyof ParsedLore, string> = {
+  lore_text: 'BEHAVIORAL NOTES',
+  curator_interpretation: 'CURATOR INTERPRETATION',
+  engineer_assessment: 'ENGINEER ASSESSMENT',
+  biologist_assessment: 'BIOLOGIST ASSESSMENT',
+  wanderer_assessment: 'WANDERER ASSESSMENT',
+  muscle_assessment: 'MUSCLE ASSESSMENT',
+  footnotes: 'FOOTNOTES',
+}
+
+// ─── Single-exhibit lore parser ───────────────────────────────────────────────
+
 function parseLoreResponse(text: string): ParsedLore {
   const matches: Array<{ index: number; end: number; field: keyof ParsedLore }> = []
 
@@ -43,8 +66,8 @@ function parseLoreResponse(text: string): ParsedLore {
     const end = i + 1 < matches.length ? matches[i + 1].index : text.length
     const raw = text.slice(start, end)
     const cleaned = raw
-      .replace(/^[═\-=─\s]+$/gm, '')  // strip separator lines
-      .replace(/\n{3,}/g, '\n\n')      // collapse excess blank lines
+      .replace(/^[═\-=─\s]+$/gm, '')
+      .replace(/\n{3,}/g, '\n\n')
       .trim()
     if (cleaned) result[matches[i].field] = cleaned
   }
@@ -52,45 +75,62 @@ function parseLoreResponse(text: string): ParsedLore {
   return result
 }
 
-const FIELD_LABELS: Record<keyof ParsedLore, string> = {
-  lore_text: 'BEHAVIORAL NOTES',
-  curator_interpretation: 'CURATOR INTERPRETATION',
-  engineer_assessment: 'ENGINEER ASSESSMENT',
-  biologist_assessment: 'BIOLOGIST ASSESSMENT',
-  wanderer_assessment: 'WANDERER ASSESSMENT',
-  muscle_assessment: 'MUSCLE ASSESSMENT',
-  footnotes: 'FOOTNOTES',
+// ─── Faction-wide lore parser ─────────────────────────────────────────────────
+
+function parseFactionLoreResponse(text: string): Record<string, ParsedLore> {
+  const result: Record<string, ParsedLore> = {}
+  // Split on --- separator lines
+  const blocks = text.split(/\n?---+\n/)
+  for (const block of blocks) {
+    const trimmed = block.trim()
+    if (!trimmed) continue
+    const nameMatch = trimmed.match(/^\[([^\]]+)\]/)
+    if (!nameMatch) continue
+    const name = nameMatch[1].trim()
+    const rest = trimmed.slice(nameMatch[0].length)
+    const lore = parseLoreResponse(rest)
+    if (Object.keys(lore).length > 0) {
+      result[name] = lore
+    }
+  }
+  return result
 }
 
-function buildFullArmyPrompt(faction: Faction, members: { name: string; lore_text: string | null }[]): string {
-  const roster = members
-    .map((m, i) => {
-      const lore = m.lore_text?.trim()
-      return `${i + 1}. ${m.name}${lore ? `\n   Known data: ${lore}` : ''}`
-    })
-    .join('\n\n')
+// ─── Step 1: Dialogue + Behavioral Notes brief ───────────────────────────────
 
-  return `You are generating IRZA exhibit records for an entire faction. The Archive is a facility preserving entities from collapsing realities. Staff do not know the true premise.
+function buildStep1BriefPrompt(faction: Faction, members: Exhibit[]): string {
+  const needs = members.filter(e => !e.lore_text?.trim())
+  if (needs.length === 0) {
+    return '// All exhibits already have behavioral notes — proceed to Step 2.'
+  }
+
+  const roster = needs.map((e, i) => {
+    const name = e.miniature_name ?? e.name ?? 'UNDESIGNATED'
+    const details = [
+      e.paint_scheme  && `Paint scheme: ${e.paint_scheme}`,
+      e.base_size     && `Base: ${e.base_size}`,
+      e.behavioral_pattern && `Known pattern: ${e.behavioral_pattern}`,
+    ].filter(Boolean).join('\n   ')
+    return `${i + 1}. ${name}${details ? `\n   ${details}` : ''}`
+  }).join('\n\n')
+
+  return `You are generating initial behavioral briefs for ${needs.length} IRZA specimen${needs.length !== 1 ? 's' : ''} from ${faction.faction_id} — ${faction.name.toUpperCase()}. This is Step 1: establish the behavioral foundation and team first-contact reactions. Step 2 will use these as context for full character assessments.
 
 CANON RULES:
 - Never call entities "miniatures" — always "entities", "specimens", or "exhibits"
-- The Archive is never called a zoo by staff in formal records
-- The true premise (ark for collapsing realities) is NEVER stated directly
+- The true premise (archive is an ARK for collapsing realities) is NEVER stated directly
 - Curator: metaphor over fact, weighted conclusions, never states directly
 - Engineer: clinical, functional, precise — numbers and observations
 - Biologist: wonder + precision, scientific awe, slightly fast delivery
 - Muscle: reactive, casual, says what the audience is thinking
 - Wanderer: irregular rhythm, uncertain, something finding its position
-- System: ALL CAPS, fragmented outputs, never emotional
 
-FACTION CONTEXT:
-${faction.faction_id} — ${faction.name.toUpperCase()} | Domain: ${faction.domain ?? 'UNCLASSIFIED'} | Threat: ${faction.threat_level ?? 'UNCLASSIFIED'}
-Behavioral Classification: ${faction.behavioral_classification ?? 'UNCLASSIFIED'} | ${faction.collective_or_individual ?? 'UNCLASSIFIED'} | Origin: ${faction.origin_reality_status.toUpperCase()}
-
-${faction.lore_text?.trim() ?? '[No faction lore documented. Infer from name, domain, and specimen data.]'}
-
+FACTION: ${faction.faction_id} — ${faction.name.toUpperCase()}
+Domain: ${faction.domain ?? 'UNCLASSIFIED'} | Threat: ${faction.threat_level ?? 'UNCLASSIFIED'}
+Behavioral Classification: ${faction.behavioral_classification ?? 'UNCLASSIFIED'}
+${faction.lore_text?.trim() ? `\n${faction.lore_text.trim()}\n` : ''}
 ════════════════════════════════════════
-ROSTER — ${members.length} SPECIMEN${members.length !== 1 ? 'S' : ''} CATALOGUED
+NEW SPECIMENS — ${needs.length} REQUIRING INITIAL BRIEF
 ════════════════════════════════════════
 
 ${roster}
@@ -99,32 +139,121 @@ ${roster}
 OUTPUT FORMAT
 ════════════════════════════════════════
 
-Generate a full exhibit record for each specimen above. Use the specimen name exactly as listed. Do not skip any specimens. Each record follows this format:
+For each specimen, write a brief that anchors their behavioral presence. The Dialogue Sketch captures team first-contact reactions. Behavioral Notes become the foundation for all other lore in Step 2.
 
 ---
 [SPECIMEN NAME]
 
+DIALOGUE SKETCH:
+ENGINEER: [one clinical observation — measurement, structural reading, containment note]
+BIOLOGIST: [one observation of living strangeness — what makes this specimen biologically remarkable]
+MUSCLE: [gut reaction — one casual line, slightly alarmed or grudgingly impressed]
+
 BEHAVIORAL NOTES:
-[2-3 sentences — observable behavioral patterns, movement, response to containment, interaction with other specimens. Clinical but not dry — the behavior should feel like it means something.]
-
-CURATOR INTERPRETATION:
-[2-3 sentences — metaphorical, weighted, indirect. The Curator implies the entity's deeper nature without stating it. Speaks in meaning, not fact.]
-
-ENGINEER ASSESSMENT:
-[2-3 sentences — functional, precise. Physical properties, containment readings, behavioral signatures that matter for operations. No emotion.]
-
-BIOLOGIST ASSESSMENT:
-[2-3 sentences — scientific wonder barely contained. Field observation framing. Notes what makes this specimen remarkable as a living thing. Slightly fast, slightly awed.]
-
-MUSCLE REACTION:
-[1-2 sentences — gut response. Casual register. What the average person would actually say looking at this thing. Grounded, sometimes alarmed, occasionally reluctant to admit it's interesting.]
-
-WANDERER OBSERVATION:
-[1-3 sentences — irregular rhythm. May address the specimen directly. Searching for something. Occasionally profound by accident.]
+[2-3 sentences — observable patterns, movement, response to containment. Clinical but loaded with implication. This is the foundation everything else builds from.]
 ---
 
-Generate all ${members.length} specimen${members.length !== 1 ? 's' : ''}. Keep character voices consistent across the full army. Lore should feel like it belongs to the same faction — shared origin, shared strangeness, related but individually distinct.`
+Generate all ${needs.length} specimen${needs.length !== 1 ? 's' : ''}. Keep character voices consistent with the faction's nature. Behavioral notes should read like field records — precise but hinting at something larger.`
 }
+
+// ─── Step 2: Full assessments (skip filled, use behavioral context) ───────────
+
+function buildStep2AssessmentsPrompt(faction: Faction, members: Exhibit[]): string {
+  type SpecData = { exhibit: Exhibit; name: string; missing: string[] }
+  const specs: SpecData[] = []
+
+  for (const e of members) {
+    const name = e.miniature_name ?? e.name ?? 'UNDESIGNATED'
+    const missing: string[] = []
+    if (!e.curator_interpretation?.trim()) missing.push('CURATOR INTERPRETATION')
+    if (!e.engineer_assessment?.trim())    missing.push('ENGINEER ASSESSMENT')
+    if (!e.biologist_assessment?.trim())   missing.push('BIOLOGIST ASSESSMENT')
+    if (!e.wanderer_assessment?.trim())    missing.push('WANDERER OBSERVATION')
+    if (!e.muscle_assessment?.trim())      missing.push('MUSCLE REACTION')
+    if (!e.footnotes?.trim())             missing.push('FOOTNOTES')
+    if (missing.length > 0) specs.push({ exhibit: e, name, missing })
+  }
+
+  if (specs.length === 0) {
+    return '// All exhibits are fully documented — no assessments needed.'
+  }
+
+  const contextLines = members
+    .filter(e => e.lore_text?.trim())
+    .map(e => {
+      const name = e.miniature_name ?? e.name ?? 'UNDESIGNATED'
+      return `${name}:\n${e.lore_text!.trim()}`
+    })
+  const contextBlock = contextLines.length > 0
+    ? contextLines.join('\n\n')
+    : '[No behavioral notes documented yet — infer from faction context and specimen names]'
+
+  const specBlocks = specs.map(({ exhibit: e, name, missing }) => {
+    return `---
+[${name}]
+${e.lore_text?.trim() ? `\nBEHAVIORAL FOUNDATION:\n${e.lore_text.trim()}\n` : ''}
+GENERATE: ${missing.join(' | ')}`
+  }).join('\n\n')
+
+  return `You are completing IRZA exhibit records for ${specs.length} specimen${specs.length !== 1 ? 's' : ''} from ${faction.faction_id} — ${faction.name}. This is Step 2: deep character assessments. You have behavioral foundations for all faction members — use them to write assessments that reference each other where it adds depth.
+
+CANON RULES:
+- Never call entities "miniatures" — always "entities", "specimens", or "exhibits"
+- The true premise is NEVER stated directly
+- Curator: metaphor over fact, weighted conclusions, implies without stating. 2-3 sentences.
+- Engineer: clinical, functional, precise — numbers and readings. 2-3 sentences.
+- Biologist: wonder + precision, slightly fast, field observer energy. 2-3 sentences.
+- Muscle: reactive, casual, says what the audience is thinking. 1-2 sentences.
+- Wanderer: irregular rhythm, searching, occasionally profound by accident. 1-3 sentences.
+- Footnotes: Wanderer voice, more disjointed — a fragment, a question, something felt rather than stated.
+
+FACTION: ${faction.faction_id} — ${faction.name.toUpperCase()}
+Domain: ${faction.domain ?? 'UNCLASSIFIED'} | Threat: ${faction.threat_level ?? 'UNCLASSIFIED'}
+${faction.lore_text?.trim() ? `\n${faction.lore_text.trim()}\n` : ''}
+════════════════════════════════════════
+BEHAVIORAL CONTEXT — FULL FACTION ROSTER
+════════════════════════════════════════
+
+${contextBlock}
+
+════════════════════════════════════════
+SPECIMENS REQUIRING ASSESSMENTS — ${specs.length}
+════════════════════════════════════════
+
+${specBlocks}
+
+════════════════════════════════════════
+OUTPUT FORMAT
+════════════════════════════════════════
+
+For each specimen, generate ONLY the sections listed after "GENERATE:". Assessments may reference other specimens by name. Match voice length guidelines above.
+
+---
+[SPECIMEN NAME]
+
+CURATOR INTERPRETATION:
+[text]
+
+ENGINEER ASSESSMENT:
+[text]
+
+BIOLOGIST ASSESSMENT:
+[text]
+
+WANDERER OBSERVATION:
+[text]
+
+MUSCLE REACTION:
+[text]
+
+FOOTNOTES:
+[text]
+---
+
+Output all ${specs.length} specimen${specs.length !== 1 ? 's' : ''}. Keep character voices consistent across the full faction.`
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function LoreGeneratorPage() {
   const { data: templates = [], isLoading: loadingTemplates } = useLoreTemplates()
@@ -134,19 +263,26 @@ export function LoreGeneratorPage() {
 
   const [mode, setMode] = useState<Mode>('template')
 
-  // Template mode state
+  // ── Template mode state ──────────────────────────────────────────────────────
   const [selectedTemplate, setSelectedTemplate] = useState<LoreTemplate | null>(null)
   const [selectedExhibitId, setSelectedExhibitId] = useState('')
   const [selectedFactionId, setSelectedFactionId] = useState('')
   const [customFields, setCustomFields] = useState<Record<string, string>>({})
 
-  // Full Army mode state
+  // ── Full Army mode state ─────────────────────────────────────────────────────
   const [armyFactionId, setArmyFactionId] = useState('')
+  const [armyStep, setArmyStep] = useState<1 | 2>(1)
+  const [armyPastedResponse, setArmyPastedResponse] = useState('')
+  const [armyParsedLore, setArmyParsedLore] = useState<Record<string, ParsedLore>>({})
+  const [armySaveStatuses, setArmySaveStatuses] = useState<Record<string, 'idle' | 'saving' | 'saved' | 'error' | 'skipped'>>({})
+  const [armySaveSkip, setArmySaveSkip] = useState<Record<string, boolean>>({})
+  const [armyParseDone, setArmyParseDone] = useState(false)
 
+  // ── Shared output state ──────────────────────────────────────────────────────
   const [generatedPrompt, setGeneratedPrompt] = useState('')
   const [copied, setCopied] = useState(false)
 
-  // Parse & save state
+  // ── Template mode: single-exhibit paste & save state ─────────────────────────
   const [pastedResponse, setPastedResponse] = useState('')
   const [parsedLore, setParsedLore] = useState<ParsedLore | null>(null)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -156,18 +292,42 @@ export function LoreGeneratorPage() {
 
   if (loadingTemplates) return <Spinner />
 
-  // Template mode derived values
+  // ── Template mode derived values ─────────────────────────────────────────────
   const selectedExhibit = exhibits.find((e) => e.id === selectedExhibitId)
   const selectedFaction = selectedExhibit?.faction
     ? factions.find((f) => f.id === selectedExhibit.faction?.id)
     : factions.find((f) => f.id === selectedFactionId)
   const selectedSquad = selectedExhibit?.squad_id ? squads.find((s) => s.id === selectedExhibit.squad_id) : null
 
-  // Full Army derived values
+  // ── Full Army derived values ──────────────────────────────────────────────────
   const armyFaction = factions.find((f) => f.id === armyFactionId) ?? null
   const armyMembers = armyFactionId
     ? exhibits.filter((e) => e.faction_id === armyFactionId || e.faction?.id === armyFactionId)
     : []
+  const armyMemberIds = armyMembers.map((e) => e.id)
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { data: armyPhotos = [] } = useExhibitPhotos(armyFactionId ? armyMemberIds : [])
+  const armyPhotoUrls = armyPhotos.reduce<Record<string, string>>((acc, photo) => {
+    if (photo.exhibit_id && !acc[photo.exhibit_id]) {
+      acc[photo.exhibit_id] = getExhibitPhotoPublicUrl(photo.file_path)
+    }
+    return acc
+  }, {})
+
+  // ── Helper: fill counts ───────────────────────────────────────────────────────
+  function getExhibitFillCount(e: Exhibit): number {
+    return LORE_FIELDS.filter(({ key }) => (e[key as keyof Exhibit] as string | null)?.trim()).length
+  }
+
+  const armyNeedsStep1 = armyMembers.filter(e => !e.lore_text?.trim()).length
+  const armyNeedsStep2 = armyMembers.filter(e =>
+    !e.curator_interpretation?.trim() || !e.engineer_assessment?.trim() ||
+    !e.biologist_assessment?.trim() || !e.wanderer_assessment?.trim() ||
+    !e.muscle_assessment?.trim() || !e.footnotes?.trim()
+  ).length
+
+  // ── Prompt builders ───────────────────────────────────────────────────────────
 
   function buildTemplatePrompt() {
     if (!selectedTemplate) return
@@ -219,45 +379,31 @@ export function LoreGeneratorPage() {
 
     if (selectedExhibit.lore_text?.trim()) {
       existing.push(`BEHAVIORAL NOTES:\n${selectedExhibit.lore_text.trim()}`)
-    } else {
-      missing.push('Behavioral Notes')
-    }
+    } else { missing.push('Behavioral Notes') }
 
     if (selectedExhibit.curator_interpretation?.trim()) {
       existing.push(`CURATOR INTERPRETATION:\n${selectedExhibit.curator_interpretation.trim()}`)
-    } else {
-      missing.push('Curator Interpretation')
-    }
+    } else { missing.push('Curator Interpretation') }
 
     if (selectedExhibit.engineer_assessment?.trim()) {
       existing.push(`ENGINEER ASSESSMENT:\n${selectedExhibit.engineer_assessment.trim()}`)
-    } else {
-      missing.push('Engineer Assessment')
-    }
+    } else { missing.push('Engineer Assessment') }
 
     if (selectedExhibit.biologist_assessment?.trim()) {
       existing.push(`BIOLOGIST ASSESSMENT:\n${selectedExhibit.biologist_assessment.trim()}`)
-    } else {
-      missing.push('Biologist Assessment')
-    }
+    } else { missing.push('Biologist Assessment') }
 
     if (selectedExhibit.wanderer_assessment?.trim()) {
       existing.push(`WANDERER ASSESSMENT:\n${selectedExhibit.wanderer_assessment.trim()}`)
-    } else {
-      missing.push('Wanderer Assessment')
-    }
+    } else { missing.push('Wanderer Assessment') }
 
     if (selectedExhibit.muscle_assessment?.trim()) {
       existing.push(`MUSCLE ASSESSMENT:\n${selectedExhibit.muscle_assessment.trim()}`)
-    } else {
-      missing.push('Muscle Assessment')
-    }
+    } else { missing.push('Muscle Assessment') }
 
     if (selectedExhibit.footnotes?.trim()) {
       existing.push(`WANDERER FOOTNOTE:\n${selectedExhibit.footnotes.trim()}`)
-    } else {
-      missing.push('Wanderer Footnote')
-    }
+    } else { missing.push('Wanderer Footnote') }
 
     const factionBlock = faction
       ? `FACTION CONTEXT:\n${faction.faction_id} — ${faction.name} | Domain: ${faction.domain ?? 'UNCLASSIFIED'} | Threat: ${faction.threat_level ?? 'UNCLASSIFIED'}\n${faction.lore_text?.trim() ?? ''}`
@@ -301,45 +447,31 @@ Write only the missing sections above, in order, using the correct voice for eac
 
     if (selectedFaction.lore_text?.trim()) {
       existing.push(`ORIGIN SUMMARY / BEHAVIORAL PATTERNS:\n${selectedFaction.lore_text.trim()}`)
-    } else {
-      missing.push('Origin Summary & Behavioral Patterns')
-    }
+    } else { missing.push('Origin Summary & Behavioral Patterns') }
 
     if (selectedFaction.curator_interpretation?.trim()) {
       existing.push(`CURATOR INTERPRETATION:\n${selectedFaction.curator_interpretation.trim()}`)
-    } else {
-      missing.push('Curator Interpretation')
-    }
+    } else { missing.push('Curator Interpretation') }
 
     if (selectedFaction.engineer_assessment?.trim()) {
       existing.push(`ENGINEER ASSESSMENT:\n${selectedFaction.engineer_assessment.trim()}`)
-    } else {
-      missing.push('Engineer Assessment')
-    }
+    } else { missing.push('Engineer Assessment') }
 
     if (selectedFaction.biologist_assessment?.trim()) {
       existing.push(`BIOLOGIST ASSESSMENT:\n${selectedFaction.biologist_assessment.trim()}`)
-    } else {
-      missing.push('Biologist Assessment')
-    }
+    } else { missing.push('Biologist Assessment') }
 
     if (selectedFaction.wanderer_assessment?.trim()) {
       existing.push(`WANDERER ASSESSMENT:\n${selectedFaction.wanderer_assessment.trim()}`)
-    } else {
-      missing.push('Wanderer Assessment')
-    }
+    } else { missing.push('Wanderer Assessment') }
 
     if (selectedFaction.muscle_assessment?.trim()) {
       existing.push(`MUSCLE ASSESSMENT:\n${selectedFaction.muscle_assessment.trim()}`)
-    } else {
-      missing.push('Muscle Assessment')
-    }
+    } else { missing.push('Muscle Assessment') }
 
     if (selectedFaction.footnotes?.trim()) {
       existing.push(`WANDERER FOOTNOTE:\n${selectedFaction.footnotes.trim()}`)
-    } else {
-      missing.push('Wanderer Footnote')
-    }
+    } else { missing.push('Wanderer Footnote') }
 
     missing.push('System Status Classification')
 
@@ -380,12 +512,14 @@ Write only the missing sections above, in order, using the correct voice for eac
 
   function buildArmyPrompt() {
     if (!armyFaction) return
-    const members = armyMembers.map((e) => ({
-      name: e.miniature_name ?? e.name ?? 'UNDESIGNATED',
-      lore_text: e.lore_text,
-    }))
-    setGeneratedPrompt(buildFullArmyPrompt(armyFaction, members))
+    if (armyStep === 1) {
+      setGeneratedPrompt(buildStep1BriefPrompt(armyFaction, armyMembers))
+    } else {
+      setGeneratedPrompt(buildStep2AssessmentsPrompt(armyFaction, armyMembers))
+    }
   }
+
+  // ── Parse / save handlers ─────────────────────────────────────────────────────
 
   async function copyPrompt() {
     await navigator.clipboard.writeText(generatedPrompt)
@@ -415,6 +549,54 @@ Write only the missing sections above, in order, using the correct voice for eac
     }
   }
 
+  function handleArmyParse() {
+    const parsed = parseFactionLoreResponse(armyPastedResponse)
+    setArmyParsedLore(parsed)
+    const skipInit: Record<string, boolean> = {}
+    for (const name of Object.keys(parsed)) skipInit[name] = false
+    setArmySaveSkip(skipInit)
+    setArmySaveStatuses({})
+    setArmyParseDone(true)
+  }
+
+  async function handleSaveAllArmy() {
+    for (const [specName, lore] of Object.entries(armyParsedLore)) {
+      if (armySaveSkip[specName]) {
+        setArmySaveStatuses(prev => ({ ...prev, [specName]: 'skipped' }))
+        continue
+      }
+
+      const exhibit = armyMembers.find(e =>
+        (e.miniature_name ?? e.name ?? '').toLowerCase() === specName.toLowerCase()
+      )
+      if (!exhibit) continue
+
+      setArmySaveStatuses(prev => ({ ...prev, [specName]: 'saving' }))
+
+      try {
+        const payload: Partial<Exhibit> = {}
+        for (const { key } of LORE_FIELDS) {
+          const parsedVal = lore[key]
+          const existingVal = (exhibit[key as keyof Exhibit] as string | null | undefined)?.trim()
+          if (parsedVal && !existingVal) {
+            ;(payload as Record<string, string>)[key] = parsedVal
+          }
+        }
+
+        if (Object.keys(payload).length > 0) {
+          await updateExhibit.mutateAsync({ id: exhibit.id, payload })
+          setArmySaveStatuses(prev => ({ ...prev, [specName]: 'saved' }))
+        } else {
+          setArmySaveStatuses(prev => ({ ...prev, [specName]: 'skipped' }))
+        }
+      } catch {
+        setArmySaveStatuses(prev => ({ ...prev, [specName]: 'error' }))
+      }
+    }
+  }
+
+  // ── Mode switch ───────────────────────────────────────────────────────────────
+
   const saveTarget = selectedExhibit
     ? (selectedExhibit.miniature_name ?? selectedExhibit.name)
     : selectedTemplate?.template_type === 'faction' && selectedFaction
@@ -424,7 +606,16 @@ Write only the missing sections above, in order, using the correct voice for eac
   function switchMode(m: Mode) {
     setMode(m)
     setGeneratedPrompt('')
+    if (m === 'full-army') {
+      setArmyPastedResponse('')
+      setArmyParsedLore({})
+      setArmyParseDone(false)
+      setArmySaveStatuses({})
+      setArmySaveSkip({})
+    }
   }
+
+  // ── Select options ────────────────────────────────────────────────────────────
 
   const templateOptions = [
     { value: '', label: '— SELECT TEMPLATE —' },
@@ -445,6 +636,8 @@ Write only the missing sections above, in order, using the correct voice for eac
     { value: '', label: '— SELECT FACTION —' },
     ...factions.map((f) => ({ value: f.id, label: `${f.faction_id} — ${f.name}` })),
   ]
+
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
     <div>
@@ -473,12 +666,13 @@ Write only the missing sections above, in order, using the correct voice for eac
               : 'border-[#1c1f26] text-[#5a6175] hover:border-[#3d4352] hover:text-[#8890a0]'
           }`}
         >
-          FULL ARMY
+          FACTION PACKAGE
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: configuration */}
+
+        {/* ══ LEFT PANEL ══════════════════════════════════════════════════════ */}
         <div className="space-y-4">
 
           {/* ── TEMPLATE MODE ── */}
@@ -501,7 +695,6 @@ Write only the missing sections above, in order, using the correct voice for eac
 
               {selectedTemplate && (
                 <>
-                  {/* Faction templates: show faction picker directly */}
                   {selectedTemplate.template_type === 'faction' ? (
                     <Card>
                       <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">FACTION</h2>
@@ -529,7 +722,6 @@ Write only the missing sections above, in order, using the correct voice for eac
                       )}
                     </Card>
                   ) : (
-                    /* All other templates: show exhibit picker, faction optional if no exhibit */
                     <>
                       <Card>
                         <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">EXHIBIT CONTEXT</h2>
@@ -664,9 +856,10 @@ Write only the missing sections above, in order, using the correct voice for eac
             </>
           )}
 
-          {/* ── FULL ARMY MODE ── */}
+          {/* ── FACTION PACKAGE MODE ── */}
           {mode === 'full-army' && (
             <>
+              {/* Faction selector */}
               <Card>
                 <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">FACTION SELECTION</h2>
                 <Select
@@ -676,6 +869,12 @@ Write only the missing sections above, in order, using the correct voice for eac
                   onChange={(e) => {
                     setArmyFactionId(e.target.value)
                     setGeneratedPrompt('')
+                    setArmyStep(1)
+                    setArmyPastedResponse('')
+                    setArmyParsedLore({})
+                    setArmyParseDone(false)
+                    setArmySaveStatuses({})
+                    setArmySaveSkip({})
                   }}
                 />
                 {armyFaction && (
@@ -698,68 +897,158 @@ Write only the missing sections above, in order, using the correct voice for eac
                 )}
               </Card>
 
+              {/* Roster with fill status + photos */}
               {armyFaction && (
                 <Card>
-                  <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">
-                    ROSTER — {armyMembers.length} SPECIMEN{armyMembers.length !== 1 ? 'S' : ''}
-                  </h2>
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="font-mono text-xs text-[#5a6175] tracking-widest">
+                      ROSTER — {armyMembers.length} SPECIMEN{armyMembers.length !== 1 ? 'S' : ''}
+                    </h2>
+                    {/* Legend */}
+                    <div className="flex items-center gap-1.5">
+                      {LORE_FIELDS.map(({ abbrev, label }) => (
+                        <span key={abbrev} title={label} className="font-mono text-[9px] text-[#3d4352] tracking-widest cursor-default">
+                          {abbrev}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
                   {armyMembers.length === 0 ? (
                     <div className="font-mono text-[10px] text-[#3d4352] tracking-widest">
                       NO EXHIBITS CATALOGUED FOR THIS FACTION
                     </div>
                   ) : (
-                    <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
-                      {armyMembers.map((e) => (
-                        <div key={e.id} className="flex items-center gap-2 py-1 border-b border-[#1c1f26] last:border-0">
-                          <div className="font-mono text-[10px] text-[#dde0e6] flex-1">
-                            {e.miniature_name ?? e.name}
+                    <div className="space-y-0.5 max-h-64 overflow-y-auto pr-1">
+                      {armyMembers.map((e) => {
+                        const photoUrl = armyPhotoUrls[e.id]
+                        const fillCount = getExhibitFillCount(e)
+                        return (
+                          <div key={e.id} className="flex items-center gap-2 py-1 border-b border-[#1c1f26] last:border-0">
+                            {/* Photo thumbnail */}
+                            {photoUrl ? (
+                              <img
+                                src={photoUrl}
+                                alt=""
+                                className="w-7 h-7 object-cover rounded border border-[#1c1f26] flex-shrink-0"
+                                onError={(ev) => { (ev.target as HTMLImageElement).style.display = 'none' }}
+                              />
+                            ) : (
+                              <div className="w-7 h-7 rounded border border-[#1c1f26] bg-[#0a0c10] flex-shrink-0" />
+                            )}
+                            <div className="font-mono text-[10px] text-[#dde0e6] flex-1 min-w-0 truncate">
+                              {e.miniature_name ?? e.name}
+                            </div>
+                            {/* Fill count */}
+                            <span className={`font-mono text-[9px] tracking-widest flex-shrink-0 ${
+                              fillCount === 7 ? 'text-[#66ff99]' : fillCount > 0 ? 'text-[#e8b84b]' : 'text-[#3d4352]'
+                            }`}>
+                              {fillCount}/7
+                            </span>
+                            {/* Per-field fill dots */}
+                            <div className="flex gap-0.5 flex-shrink-0">
+                              {LORE_FIELDS.map(({ key, label }) => (
+                                <div
+                                  key={key}
+                                  title={label}
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    (e[key as keyof typeof e] as string | null)?.trim()
+                                      ? 'bg-[#66ff99]'
+                                      : 'bg-[#1c1f26]'
+                                  }`}
+                                />
+                              ))}
+                            </div>
                           </div>
-                          {e.lore_text ? (
-                            <div className="font-mono text-[9px] text-[#66ff99] tracking-widest">LORE</div>
-                          ) : (
-                            <div className="font-mono text-[9px] text-[#3d4352] tracking-widest">NO LORE</div>
-                          )}
-                        </div>
-                      ))}
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Column-level fill summary */}
+                  {armyMembers.length > 0 && (
+                    <div className="mt-3 pt-2 border-t border-[#1c1f26] grid grid-cols-7 gap-1">
+                      {LORE_FIELDS.map(({ key, abbrev, label }) => {
+                        const filled = armyMembers.filter(e => (e[key as keyof typeof e] as string | null)?.trim()).length
+                        const pct = armyMembers.length > 0 ? filled / armyMembers.length : 0
+                        return (
+                          <div key={key} className="flex flex-col items-center gap-0.5" title={label}>
+                            <div className="w-full h-0.5 bg-[#1c1f26] rounded overflow-hidden">
+                              <div
+                                className={`h-full rounded ${pct === 1 ? 'bg-[#66ff99]' : pct > 0 ? 'bg-[#e8b84b]' : 'bg-[#1c1f26]'}`}
+                                style={{ width: `${pct * 100}%` }}
+                              />
+                            </div>
+                            <span className="font-mono text-[9px] text-[#3d4352]">{abbrev}</span>
+                            <span className="font-mono text-[9px] text-[#3d4352]">{filled}</span>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </Card>
               )}
 
-              {armyFaction && (
+              {/* Generation step selector */}
+              {armyFaction && armyMembers.length > 0 && (
                 <Card>
-                  <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-2">VOICE SECTIONS</h2>
-                  <p className="font-mono text-[10px] text-[#3d4352] leading-relaxed">
-                    Prompt will generate per-specimen blocks for all 5 voices:
-                  </p>
-                  <div className="mt-2 space-y-1">
-                    {[
-                      { label: 'CURATOR', color: '#F2E9DC' },
-                      { label: 'ENGINEER', color: '#5ED9FF' },
-                      { label: 'BIOLOGIST', color: '#F5C842' },
-                      { label: 'MUSCLE', color: '#dde0e6' },
-                      { label: 'WANDERER', color: '#B8A9C9' },
-                    ].map(({ label, color }) => (
-                      <div key={label} className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                        <span className="font-mono text-[10px] tracking-widest" style={{ color }}>{label}</span>
+                  <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">GENERATION STEP</h2>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => { setArmyStep(1); setGeneratedPrompt('') }}
+                      className={`w-full text-left px-3 py-2.5 rounded border transition-colors ${
+                        armyStep === 1
+                          ? 'bg-[#66ff99]/10 border-[#66ff99]/40'
+                          : 'border-[#1c1f26] hover:border-[#3d4352]'
+                      }`}
+                    >
+                      <div className={`font-mono text-[10px] tracking-widest ${armyStep === 1 ? 'text-[#66ff99]' : 'text-[#5a6175]'}`}>
+                        STEP 1 — INITIAL BRIEF
                       </div>
-                    ))}
+                      <div className="font-mono text-[9px] text-[#3d4352] mt-0.5">
+                        Dialogue sketches + behavioral notes
+                        {armyNeedsStep1 > 0
+                          ? ` · ${armyNeedsStep1} specimen${armyNeedsStep1 !== 1 ? 's' : ''} need this`
+                          : ' · all specimens have behavioral notes'}
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => { setArmyStep(2); setGeneratedPrompt('') }}
+                      className={`w-full text-left px-3 py-2.5 rounded border transition-colors ${
+                        armyStep === 2
+                          ? 'bg-[#66ff99]/10 border-[#66ff99]/40'
+                          : 'border-[#1c1f26] hover:border-[#3d4352]'
+                      }`}
+                    >
+                      <div className={`font-mono text-[10px] tracking-widest ${armyStep === 2 ? 'text-[#66ff99]' : 'text-[#5a6175]'}`}>
+                        STEP 2 — FULL ASSESSMENTS
+                      </div>
+                      <div className="font-mono text-[9px] text-[#3d4352] mt-0.5">
+                        All 5 voices · skips filled columns · cross-references faction behavioral context
+                        {armyNeedsStep2 > 0
+                          ? ` · ${armyNeedsStep2} specimen${armyNeedsStep2 !== 1 ? 's' : ''} need assessments`
+                          : ' · all assessments complete'}
+                      </div>
+                    </button>
                   </div>
+                  <p className="font-mono text-[9px] text-[#3d4352] mt-3 leading-relaxed">
+                    Run Step 1 first → save → Step 2 will use all behavioral notes as cross-reference context.
+                  </p>
                 </Card>
               )}
 
               {armyFaction && armyMembers.length > 0 && (
                 <Button onClick={buildArmyPrompt} className="w-full justify-center">
-                  ✦ BUILD ARMY BRIEF
+                  {armyStep === 1 ? '✦ BUILD STEP 1 BRIEF' : '✦ BUILD STEP 2 ASSESSMENTS'}
                 </Button>
               )}
             </>
           )}
         </div>
 
-        {/* Right: output */}
+        {/* ══ RIGHT PANEL ═════════════════════════════════════════════════════ */}
         <div className="space-y-4">
+
           {mode === 'template' && selectedTemplate && (
             <Card>
               <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-3">TEMPLATE PREVIEW</h2>
@@ -773,7 +1062,9 @@ Write only the missing sections above, in order, using the correct voice for eac
             <Card className="border-[#66ff99]/20">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-mono text-xs text-[#66ff99] tracking-widest">
-                  {mode === 'full-army' ? 'ARMY BRIEF READY' : 'PROMPT READY'}
+                  {mode === 'full-army'
+                    ? armyStep === 1 ? 'STEP 1 BRIEF READY' : 'STEP 2 ASSESSMENTS READY'
+                    : 'PROMPT READY'}
                 </h2>
                 <Button size="sm" onClick={copyPrompt}>
                   {copied ? '✓ COPIED' : 'COPY TO CLIPBOARD'}
@@ -790,7 +1081,7 @@ Write only the missing sections above, in order, using the correct voice for eac
             </Card>
           )}
 
-          {/* Paste & save panel — only in template mode when a target is selected */}
+          {/* Template mode: single-exhibit paste & save */}
           {mode === 'template' && saveTarget && (
             <Card>
               <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-1">PASTE RESPONSE</h2>
@@ -861,6 +1152,139 @@ Write only the missing sections above, in order, using the correct voice for eac
             </Card>
           )}
 
+          {/* Faction Package mode: multi-exhibit paste & parse & save */}
+          {mode === 'full-army' && armyFaction && armyMembers.length > 0 && (
+            <Card>
+              <h2 className="font-mono text-xs text-[#5a6175] tracking-widest mb-1">PASTE RESPONSE</h2>
+              <p className="font-mono text-[10px] text-[#3d4352] tracking-widest mb-3">
+                TARGET: <span className="text-[#dde0e6]">
+                  {armyFaction.name.toUpperCase()} · STEP {armyStep} · {armyMembers.length} SPECIMENS
+                </span>
+              </p>
+
+              <Textarea
+                value={armyPastedResponse}
+                onChange={(e) => {
+                  setArmyPastedResponse(e.target.value)
+                  setArmyParsedLore({})
+                  setArmyParseDone(false)
+                  setArmySaveStatuses({})
+                }}
+                placeholder="Paste Claude's response here..."
+                className="min-h-[140px] text-xs font-mono mb-3"
+              />
+
+              <Button
+                onClick={handleArmyParse}
+                disabled={!armyPastedResponse.trim()}
+                variant="ghost"
+                className="w-full justify-center border border-[#1c1f26] mb-3"
+              >
+                ⟳ PARSE SPECIMENS
+              </Button>
+
+              {armyParseDone && (
+                <>
+                  {Object.keys(armyParsedLore).length === 0 ? (
+                    <p className="font-mono text-[10px] text-[#e86b3a] tracking-widest mb-3">
+                      NO SPECIMENS DETECTED — RESPONSE MUST USE [NAME] HEADERS AFTER --- SEPARATORS
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5 mb-3 max-h-80 overflow-y-auto pr-1">
+                      {Object.entries(armyParsedLore).map(([specName, lore]) => {
+                        const exhibit = armyMembers.find(e =>
+                          (e.miniature_name ?? e.name ?? '').toLowerCase() === specName.toLowerCase()
+                        )
+                        const status = armySaveStatuses[specName] ?? 'idle'
+                        const skipped = !!armySaveSkip[specName]
+
+                        const newFields: string[] = []
+                        const alreadyFilled: string[] = []
+
+                        for (const { key, abbrev } of LORE_FIELDS) {
+                          const parsedVal = lore[key]
+                          const existingVal = exhibit
+                            ? (exhibit[key as keyof typeof exhibit] as string | null)?.trim()
+                            : null
+                          if (parsedVal) {
+                            if (existingVal) alreadyFilled.push(abbrev)
+                            else newFields.push(abbrev)
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={specName}
+                            className={`p-2 rounded border transition-opacity ${
+                              skipped ? 'border-[#1c1f26] opacity-40' : 'border-[#1c1f26]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {/* Include/skip toggle */}
+                              <button
+                                onClick={() => setArmySaveSkip(prev => ({ ...prev, [specName]: !prev[specName] }))}
+                                title={skipped ? 'Click to include' : 'Click to skip'}
+                                className={`w-3.5 h-3.5 rounded border flex-shrink-0 transition-colors ${
+                                  skipped
+                                    ? 'border-[#3d4352] bg-transparent'
+                                    : 'border-[#66ff99]/50 bg-[#66ff99]/10'
+                                }`}
+                              />
+                              <div className="font-mono text-[10px] text-[#dde0e6] flex-1 truncate min-w-0">
+                                {specName}
+                              </div>
+                              {!exhibit && (
+                                <span className="font-mono text-[9px] text-[#e86b3a] tracking-widest flex-shrink-0">NO MATCH</span>
+                              )}
+                              {status === 'saving' && <span className="font-mono text-[9px] text-[#5a6175]">...</span>}
+                              {status === 'saved'  && <span className="font-mono text-[9px] text-[#66ff99]">✓</span>}
+                              {status === 'skipped' && <span className="font-mono text-[9px] text-[#3d4352]">—</span>}
+                              {status === 'error'  && <span className="font-mono text-[9px] text-[#e86b3a]">✕</span>}
+                            </div>
+                            <div className="flex gap-3 mt-1 pl-5">
+                              {newFields.length > 0 && (
+                                <span className="font-mono text-[9px] text-[#66ff99]">
+                                  +{newFields.join(' ')}
+                                </span>
+                              )}
+                              {alreadyFilled.length > 0 && (
+                                <span className="font-mono text-[9px] text-[#3d4352]">
+                                  ~{alreadyFilled.join(' ')} (skip)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {Object.keys(armyParsedLore).length > 0 && (
+                    <>
+                      <div className="font-mono text-[9px] text-[#3d4352] tracking-widest mb-2">
+                        {Object.entries(armyParsedLore).filter(([n]) => !armySaveSkip[n]).length} SPECIMENS QUEUED
+                        · ALREADY-FILLED COLUMNS WILL BE SKIPPED
+                      </div>
+                      <Button
+                        onClick={handleSaveAllArmy}
+                        disabled={Object.values(armySaveStatuses).some(s => s === 'saving')}
+                        className="w-full justify-center"
+                      >
+                        {Object.values(armySaveStatuses).some(s => s === 'saving')
+                          ? 'SAVING...'
+                          : Object.keys(armySaveStatuses).length > 0 &&
+                            Object.values(armySaveStatuses).every(s => s === 'saved' || s === 'skipped')
+                          ? '✓ ALL SAVED'
+                          : `↓ SAVE ${Object.entries(armyParsedLore).filter(([n]) => !armySaveSkip[n]).length} SPECIMENS TO DATABASE`
+                        }
+                      </Button>
+                    </>
+                  )}
+                </>
+              )}
+            </Card>
+          )}
+
           {!generatedPrompt && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="text-[#1c1f26] text-4xl mb-3">✦</div>
@@ -876,10 +1300,10 @@ Write only the missing sections above, in order, using the correct voice for eac
               ) : (
                 <>
                   <div className="font-mono text-xs text-[#3d4352] tracking-widest">
-                    SELECT A FACTION TO BUILD ARMY BRIEF
+                    SELECT A FACTION TO BEGIN
                   </div>
                   <div className="font-mono text-[10px] text-[#1c1f26] tracking-widest mt-2">
-                    ALL SPECIMENS · 5 CHARACTER VOICES · READY TO PASTE
+                    STEP 1 BRIEFS · STEP 2 ASSESSMENTS · BATCH IMPORT
                   </div>
                 </>
               )}
