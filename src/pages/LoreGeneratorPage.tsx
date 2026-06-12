@@ -80,21 +80,39 @@ function parseLoreResponse(text: string): ParsedLore {
 function parseFactionLoreResponse(text: string): Record<string, ParsedLore> {
   const result: Record<string, ParsedLore> = {}
 
-  // Prepend \n so a leading --- line is matched by the split pattern
+  // Prepend \n so a [NAME] or --- at the very start of the response is matched.
   const normalized = '\n' + text.trim()
 
-  // Split on separator lines: any line that is 3+ dashes (Claude may vary the count)
-  const blocks = normalized.split(/\n[ \t]*-{3,}[ \t]*\n/)
+  // Primary strategy: split on [NAME] headers that appear alone on a line.
+  // split() with a capture group leaves the delimiters as odd-index elements:
+  //   [pre, name1, content1, name2, content2, ...]
+  const parts = normalized.split(/\n[ \t]*(\[[^\]\n]+\])[ \t]*(?=\n|$)/)
 
+  let usedPrimary = false
+  for (let i = 1; i < parts.length; i += 2) {
+    const bracketMatch = parts[i].match(/\[([^\]]+)\]/)
+    if (!bracketMatch) continue
+    const name = bracketMatch[1].trim()
+    if (!name || name.length < 2) continue
+    usedPrimary = true
+
+    const content = i + 1 < parts.length ? parts[i + 1] : ''
+    const lore = parseLoreResponse(content)
+    if (Object.keys(lore).length > 0) result[name] = lore
+  }
+
+  if (usedPrimary) return result
+
+  // Fallback: split by --- separator lines, treat first non-empty line as the name.
+  // Handles Claude responses that omit brackets around the specimen name.
+  const blocks = normalized.split(/\n[ \t]*-{3,}[ \t]*\n/)
   for (const block of blocks) {
     const trimmed = block.trim()
     if (!trimmed) continue
 
-    // First non-empty line is the name line
     const nameLine = trimmed.split('\n').find(l => l.trim())?.trim()
     if (!nameLine) continue
 
-    // Accept [Name], **[Name]**, # Name, or plain Name (strip markdown decoration)
     const bracketMatch = nameLine.match(/\[([^\]]+)\]/)
     const name = bracketMatch
       ? bracketMatch[1].trim()
@@ -102,14 +120,9 @@ function parseFactionLoreResponse(text: string): Record<string, ParsedLore> {
 
     if (!name || name.length < 2) continue
 
-    // Content starts after the name line
-    const nameIdx = trimmed.indexOf(nameLine)
-    const rest = trimmed.slice(nameIdx + nameLine.length)
+    const rest = trimmed.slice(trimmed.indexOf(nameLine) + nameLine.length)
     const lore = parseLoreResponse(rest)
-
-    if (Object.keys(lore).length > 0) {
-      result[name] = lore
-    }
+    if (Object.keys(lore).length > 0) result[name] = lore
   }
 
   return result
