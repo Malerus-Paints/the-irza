@@ -290,6 +290,14 @@ export function LoreGeneratorPage() {
   const updateExhibit = useUpdateExhibit()
   const updateFaction = useUpdateFaction()
 
+  // ── Full Army derived values (must be before early return — hooks can't be conditional) ──
+  const armyFaction = factions.find((f) => f.id === armyFactionId) ?? null
+  const armyMembers = armyFactionId
+    ? exhibits.filter((e) => e.faction_id === armyFactionId || e.faction?.id === armyFactionId)
+    : []
+  const armyMemberIds = armyMembers.map((e) => e.id)
+  const { data: armyPhotos = [] } = useExhibitPhotos(armyFactionId ? armyMemberIds : [])
+
   if (loadingTemplates) return <Spinner />
 
   // ── Template mode derived values ─────────────────────────────────────────────
@@ -298,16 +306,6 @@ export function LoreGeneratorPage() {
     ? factions.find((f) => f.id === selectedExhibit.faction?.id)
     : factions.find((f) => f.id === selectedFactionId)
   const selectedSquad = selectedExhibit?.squad_id ? squads.find((s) => s.id === selectedExhibit.squad_id) : null
-
-  // ── Full Army derived values ──────────────────────────────────────────────────
-  const armyFaction = factions.find((f) => f.id === armyFactionId) ?? null
-  const armyMembers = armyFactionId
-    ? exhibits.filter((e) => e.faction_id === armyFactionId || e.faction?.id === armyFactionId)
-    : []
-  const armyMemberIds = armyMembers.map((e) => e.id)
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { data: armyPhotos = [] } = useExhibitPhotos(armyFactionId ? armyMemberIds : [])
   const armyPhotoUrls = armyPhotos.reduce<Record<string, string>>((acc, photo) => {
     if (photo.exhibit_id && !acc[photo.exhibit_id]) {
       acc[photo.exhibit_id] = getExhibitPhotoPublicUrl(photo.file_path)
