@@ -11,8 +11,6 @@ export function ExhibitsPage() {
   const [drawerExhibit, setDrawerExhibit] = useState<Exhibit | null | undefined>(undefined)
   // undefined = closed, null = create mode, Exhibit = edit mode
 
-  const exhibitNumbers = new Map(exhibits.map((e, i) => [e.id, i + 1]))
-
   const filtered = exhibits.filter((e) => {
     const matchesSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
       (e.exhibit_number?.toLowerCase() ?? '').includes(search.toLowerCase()) ||
@@ -71,7 +69,7 @@ export function ExhibitsPage() {
             >
               <div className="flex items-center gap-4">
                 <div className="font-mono text-xs text-[#3d4352] w-24 shrink-0">
-                  Exhibit - {String(exhibitNumbers.get(exhibit.id) ?? 0).padStart(3, '0')}
+                  {exhibit.exhibit_number ?? '—'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-sans text-sm text-[#dde0e6] truncate">{exhibit.name}</div>
@@ -100,7 +98,6 @@ export function ExhibitsPage() {
         <ExhibitDrawer
           exhibit={drawerExhibit}
           onClose={() => setDrawerExhibit(undefined)}
-          sequentialNumber={drawerExhibit ? (exhibitNumbers.get(drawerExhibit.id) ?? undefined) : undefined}
         />
       )}
     </div>
