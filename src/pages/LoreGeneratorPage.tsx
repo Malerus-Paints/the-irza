@@ -79,20 +79,39 @@ function parseLoreResponse(text: string): ParsedLore {
 
 function parseFactionLoreResponse(text: string): Record<string, ParsedLore> {
   const result: Record<string, ParsedLore> = {}
-  // Split on --- separator lines
-  const blocks = text.split(/\n?---+\n/)
+
+  // Prepend \n so a leading --- line is matched by the split pattern
+  const normalized = '\n' + text.trim()
+
+  // Split on separator lines: any line that is 3+ dashes (Claude may vary the count)
+  const blocks = normalized.split(/\n[ \t]*-{3,}[ \t]*\n/)
+
   for (const block of blocks) {
     const trimmed = block.trim()
     if (!trimmed) continue
-    const nameMatch = trimmed.match(/^\[([^\]]+)\]/)
-    if (!nameMatch) continue
-    const name = nameMatch[1].trim()
-    const rest = trimmed.slice(nameMatch[0].length)
+
+    // First non-empty line is the name line
+    const nameLine = trimmed.split('\n').find(l => l.trim())?.trim()
+    if (!nameLine) continue
+
+    // Accept [Name], **[Name]**, # Name, or plain Name (strip markdown decoration)
+    const bracketMatch = nameLine.match(/\[([^\]]+)\]/)
+    const name = bracketMatch
+      ? bracketMatch[1].trim()
+      : nameLine.replace(/^[*_#\s]+|[*_#\s]+$/g, '').trim()
+
+    if (!name || name.length < 2) continue
+
+    // Content starts after the name line
+    const nameIdx = trimmed.indexOf(nameLine)
+    const rest = trimmed.slice(nameIdx + nameLine.length)
     const lore = parseLoreResponse(rest)
+
     if (Object.keys(lore).length > 0) {
       result[name] = lore
     }
   }
+
   return result
 }
 
@@ -1184,9 +1203,15 @@ Write only the missing sections above, in order, using the correct voice for eac
               {armyParseDone && (
                 <>
                   {Object.keys(armyParsedLore).length === 0 ? (
-                    <p className="font-mono text-[10px] text-[#e86b3a] tracking-widest mb-3">
-                      NO SPECIMENS DETECTED — RESPONSE MUST USE [NAME] HEADERS AFTER --- SEPARATORS
-                    </p>
+                    <div className="mb-3 space-y-1">
+                      <p className="font-mono text-[10px] text-[#e86b3a] tracking-widest">
+                        NO SPECIMENS DETECTED
+                      </p>
+                      <p className="font-mono text-[9px] text-[#3d4352] leading-relaxed">
+                        Parser looks for --- separator lines followed by a specimen name on the next line.
+                        Name can be [Bracketed], plain text, or **bold**. Check that Claude used --- between specimens.
+                      </p>
+                    </div>
                   ) : (
                     <div className="space-y-1.5 mb-3 max-h-80 overflow-y-auto pr-1">
                       {Object.entries(armyParsedLore).map(([specName, lore]) => {
