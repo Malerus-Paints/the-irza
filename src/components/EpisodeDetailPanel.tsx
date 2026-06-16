@@ -47,6 +47,21 @@ const STATE_COLORS: Record<RevelationState, string> = {
 const inputCls = 'bg-[#0a0c10] border border-[#1c1f26] rounded px-2 py-1.5 text-xs text-[#dde0e6] placeholder-[#3d4352] focus:outline-none focus:border-[#66ff99]/30 w-full'
 const labelCls = 'font-mono text-[9px] text-[#5a6175] tracking-widest block mb-1 uppercase'
 
+// ─── Schedule math (episode 1 = 2026-06-03, each ep = +1 day) ────────────────
+
+const SCHEDULE_BASE_MS = new Date('2026-06-02T00:00:00Z').getTime()
+const DAY_MS = 86_400_000
+
+function dateToEpNum(dateStr: string): number | null {
+  if (!dateStr) return null
+  const days = Math.round((new Date(dateStr + 'T00:00:00Z').getTime() - SCHEDULE_BASE_MS) / DAY_MS)
+  return days > 0 ? days : null
+}
+
+function epNumToDate(epNum: number): string {
+  return new Date(SCHEDULE_BASE_MS + epNum * DAY_MS).toISOString().split('T')[0]
+}
+
 // ─── Episode edit form ────────────────────────────────────────────────────────
 
 type EditFields = {
@@ -89,6 +104,16 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
     setFields((f) => ({ ...f, ...patch }))
     setIsDirty(true)
     setSaveError(null)
+  }
+
+  function onDateChange(dateStr: string) {
+    const epNum = dateToEpNum(dateStr)
+    set({ posted_date: dateStr, ...(epNum != null ? { episode_number: String(epNum) } : {}) })
+  }
+
+  function onEpNumChange(raw: string) {
+    const n = parseInt(raw)
+    set({ episode_number: raw, ...(raw && !isNaN(n) ? { posted_date: epNumToDate(n) } : {}) })
   }
 
   function handleSave() {
@@ -165,7 +190,7 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
             min={1}
             placeholder="—"
             value={fields.episode_number}
-            onChange={(e) => set({ episode_number: e.target.value })}
+            onChange={(e) => onEpNumChange(e.target.value)}
             className={inputCls}
           />
         </div>
@@ -229,7 +254,7 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
           <input
             type="date"
             value={fields.posted_date}
-            onChange={(e) => set({ posted_date: e.target.value })}
+            onChange={(e) => onDateChange(e.target.value)}
             className={inputCls}
           />
         </div>
