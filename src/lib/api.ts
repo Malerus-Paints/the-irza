@@ -449,6 +449,8 @@ export interface SyncResult {
   squads_updated: number
   figures_created: number
   figures_updated: number
+  anomalies_created: number
+  anomalies_updated: number
   errors: { army_name?: string; group_name?: string; figure_name?: string; error: string }[]
 }
 
@@ -472,6 +474,8 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
     squads_updated: 0,
     figures_created: 0,
     figures_updated: 0,
+    anomalies_created: 0,
+    anomalies_updated: 0,
     errors: [],
   }
 
@@ -724,6 +728,75 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
         result.errors.push({
           army_name: army.name,
           error: `Failed to sync army: ${error}`,
+        })
+      }
+    }
+    // Sync faction-less figures as anomalies
+    const { data: allFigureArmies } = await paintingLibSupabase
+      .from('figure_armies')
+      .select('figure_id')
+
+    const assignedFigureIds = new Set((allFigureArmies ?? []).map((fa: { figure_id: string }) => fa.figure_id))
+
+    const { data: allFigures } = await paintingLibSupabase
+      .from('figures')
+      .select('id, name')
+      .eq('user_id', paintingLibraryUserId)
+
+    const unassignedFigures = (allFigures ?? []).filter((f: { id: string }) => !assignedFigureIds.has(f.id))
+
+    const { data: existingAnomalies } = await supabase
+      .from('anomalies')
+      .select('anomaly_id')
+      .order('anomaly_id', { ascending: false })
+      .limit(1)
+
+    let nextAnomalyNum = 1
+    if (existingAnomalies && existingAnomalies.length > 0) {
+      const match = existingAnomalies[0].anomaly_id.match(/A-(\d+)/)
+      if (match) nextAnomalyNum = parseInt(match[1]) + 1
+    }
+
+    for (const figure of unassignedFigures) {
+      try {
+        const minitrackId = `minitrack:${figure.id}`
+        const { data: existing } = await supabase
+          .from('anomalies')
+          .select('id')
+          .eq('drive_doc_id', minitrackId)
+          .limit(1)
+
+        if (existing && existing.length > 0) {
+          await updateAnomaly(existing[0].id, { designation: figure.name })
+          result.anomalies_updated++
+        } else {
+          const anomalyNum = String(nextAnomalyNum).padStart(3, '0')
+          await createAnomaly({
+            anomaly_id: `A-${anomalyNum}`,
+            designation: figure.name,
+            origin_classification: 'UNKNOWN',
+            domain: null,
+            threat_level: null,
+            behavioral_pattern: null,
+            collective_or_individual: null,
+            system_status: 'UNCLASSIFIED',
+            reality_signature: null,
+            episode_number: null,
+            filmed: false,
+            posted_date: null,
+            platform: null,
+            lore_text: null,
+            drive_doc_id: minitrackId,
+            drive_doc_url: null,
+            status: 'drafted',
+          })
+          result.anomalies_created++
+          nextAnomalyNum++
+        }
+      } catch (anomalyErr) {
+        result.errors.push({
+          figure_name: figure.name,
+          error: `Failed to sync anomaly: ${extractErrorMessage(anomalyErr)}`,
         })
       }
     }

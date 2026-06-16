@@ -178,7 +178,7 @@ export function Card({ children, className = '', onClick }: { children: React.Re
 
 interface SyncStatusProps {
   status: 'idle' | 'pending' | 'success' | 'error'
-  result?: { armies_created: number; armies_updated: number; squads_created: number; squads_updated: number; figures_created: number; figures_updated: number; errors: any[] }
+  result?: { armies_created: number; armies_updated: number; squads_created: number; squads_updated: number; figures_created: number; figures_updated: number; anomalies_created: number; anomalies_updated: number; errors: any[] }
   error?: Error | null
 }
 
@@ -205,8 +205,8 @@ export function SyncStatus({ status, result, error }: SyncStatusProps) {
   }
 
   if (status === 'success' && result) {
-    const totalCreated = result.armies_created + result.squads_created + result.figures_created
-    const totalUpdated = result.armies_updated + result.squads_updated + result.figures_updated
+    const totalCreated = result.armies_created + result.squads_created + result.figures_created + result.anomalies_created
+    const totalUpdated = result.armies_updated + result.squads_updated + result.figures_updated + result.anomalies_updated
 
     return (
       <Card className="border-[#66ff99]/20 bg-[#066630]/10">
@@ -215,7 +215,7 @@ export function SyncStatus({ status, result, error }: SyncStatusProps) {
             ✓ SYNC COMPLETE: {totalCreated} created · {totalUpdated} updated
           </p>
           <p className="font-mono text-xs text-[#5a6175]">
-            {result.armies_created} factions{result.armies_updated > 0 ? ` (+${result.armies_updated})` : ''} · {result.squads_created} squads{result.squads_updated > 0 ? ` (+${result.squads_updated})` : ''} · {result.figures_created} exhibits{result.figures_updated > 0 ? ` (+${result.figures_updated})` : ''}
+            {result.armies_created} factions{result.armies_updated > 0 ? ` (+${result.armies_updated})` : ''} · {result.squads_created} squads{result.squads_updated > 0 ? ` (+${result.squads_updated})` : ''} · {result.figures_created} exhibits{result.figures_updated > 0 ? ` (+${result.figures_updated})` : ''} · {result.anomalies_created} anomalies{result.anomalies_updated > 0 ? ` (+${result.anomalies_updated})` : ''}
           </p>
           {result.errors.length > 0 && (
             <details className="text-xs">
