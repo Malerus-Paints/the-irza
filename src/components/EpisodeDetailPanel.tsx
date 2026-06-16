@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   useEpisodePhotos, useCreateEpisodePhoto, useDeleteEpisodePhoto,
   useExhibitRevelations, useCreateExhibitRevelation, useDeleteExhibitRevelation,
+  useUpdateEpisode,
 } from '../hooks/useData'
-import type { Episode, PhotoRole, RevelationState, RevealedField } from '../types'
+import { EPISODE_TYPE_LABELS, EPISODE_TYPE_RUNTIME } from '../types'
+import type { Episode, EpisodeStatus, PhotoRole, RevelationState, RevealedField, RuntimeClass } from '../types'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -44,6 +46,176 @@ const STATE_COLORS: Record<RevelationState, string> = {
 
 const inputCls = 'bg-[#0a0c10] border border-[#1c1f26] rounded px-2 py-1.5 text-xs text-[#dde0e6] placeholder-[#3d4352] focus:outline-none focus:border-[#66ff99]/30 w-full'
 const labelCls = 'font-mono text-[9px] text-[#5a6175] tracking-widest block mb-1 uppercase'
+
+// ─── Episode edit form ────────────────────────────────────────────────────────
+
+type EditFields = {
+  title: string
+  episode_number: string
+  episode_type: string
+  runtime_class: RuntimeClass | ''
+  status: EpisodeStatus
+  phase: string
+  notes: string
+}
+
+function EpisodeEditForm({ episode }: { episode: Episode }) {
+  const update = useUpdateEpisode()
+
+  const [fields, setFields] = useState<EditFields>({
+    title: episode.title,
+    episode_number: episode.episode_number != null ? String(episode.episode_number) : '',
+    episode_type: episode.episode_type ?? '',
+    runtime_class: episode.runtime_class ?? '',
+    status: episode.status,
+    phase: String(episode.phase),
+    notes: episode.notes ?? '',
+  })
+  const [isDirty, setIsDirty] = useState(false)
+
+  // Reset if episode changes
+  useEffect(() => {
+    setFields({
+      title: episode.title,
+      episode_number: episode.episode_number != null ? String(episode.episode_number) : '',
+      episode_type: episode.episode_type ?? '',
+      runtime_class: episode.runtime_class ?? '',
+      status: episode.status,
+      phase: String(episode.phase),
+      notes: episode.notes ?? '',
+    })
+    setIsDirty(false)
+  }, [episode.id])
+
+  function set(patch: Partial<EditFields>) {
+    setFields((f) => ({ ...f, ...patch }))
+    setIsDirty(true)
+  }
+
+  function handleSave() {
+    if (!fields.title.trim()) return
+    update.mutate(
+      {
+        id: episode.id,
+        payload: {
+          title: fields.title.trim(),
+          episode_number: fields.episode_number !== '' ? parseInt(fields.episode_number) : null,
+          episode_type: fields.episode_type || null,
+          runtime_class: (fields.runtime_class || null) as RuntimeClass | null,
+          status: fields.status,
+          phase: parseInt(fields.phase) || 1,
+          notes: fields.notes.trim() || null,
+        },
+      },
+      { onSuccess: () => setIsDirty(false) }
+    )
+  }
+
+  return (
+    <div className="mb-4 pb-4 border-b border-[#1c1f26]">
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-mono text-[9px] text-[#5a6175] tracking-widest">EPISODE FIELDS</span>
+        <div className="flex items-center gap-3">
+          {isDirty && <span className="font-mono text-[9px] text-[#e8b84b] tracking-widest">UNSAVED</span>}
+          {update.isError && <span className="font-mono text-[9px] text-[#cc3355] tracking-widest">SAVE FAILED</span>}
+          <button
+            onClick={handleSave}
+            disabled={!isDirty || !fields.title.trim() || update.isPending}
+            className="font-mono text-[9px] tracking-widest px-3 py-1 rounded bg-[#66ff99]/10 text-[#66ff99] hover:bg-[#66ff99]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            {update.isPending ? 'SAVING...' : 'SAVE'}
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-6 gap-2 mb-2">
+        <div className="col-span-3">
+          <label className={labelCls}>Title</label>
+          <input
+            value={fields.title}
+            onChange={(e) => set({ title: e.target.value })}
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Ep #</label>
+          <input
+            type="number"
+            min={1}
+            placeholder="—"
+            value={fields.episode_number}
+            onChange={(e) => set({ episode_number: e.target.value })}
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Phase</label>
+          <input
+            type="number"
+            min={1}
+            value={fields.phase}
+            onChange={(e) => set({ phase: e.target.value })}
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Status</label>
+          <select
+            value={fields.status}
+            onChange={(e) => set({ status: e.target.value as EpisodeStatus })}
+            className={inputCls}
+          >
+            <option value="planned">PLANNED</option>
+            <option value="scripted">SCRIPTED</option>
+            <option value="filmed">FILMED</option>
+            <option value="posted">POSTED</option>
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className={labelCls}>Type</label>
+          <select
+            value={fields.episode_type}
+            onChange={(e) => {
+              const t = e.target.value
+              set({ episode_type: t, ...(EPISODE_TYPE_RUNTIME[t] ? { runtime_class: EPISODE_TYPE_RUNTIME[t] } : {}) })
+            }}
+            className={inputCls}
+          >
+            <option value="">— UNCLASSIFIED —</option>
+            {Object.entries(EPISODE_TYPE_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>Runtime</label>
+          <select
+            value={fields.runtime_class}
+            onChange={(e) => set({ runtime_class: e.target.value as RuntimeClass | '' })}
+            className={inputCls}
+          >
+            <option value="">— —</option>
+            <option value="SHORT">SHORT — 30–40s</option>
+            <option value="STANDARD">STANDARD — 2–3min</option>
+            <option value="LONG">LONG — 3min+</option>
+            <option value="EVENT">EVENT — as needed</option>
+          </select>
+        </div>
+      </div>
+      <div className="mt-2">
+        <label className={labelCls}>Notes</label>
+        <textarea
+          rows={2}
+          placeholder="Production notes, reminders..."
+          value={fields.notes}
+          onChange={(e) => set({ notes: e.target.value })}
+          className={`${inputCls} resize-none`}
+        />
+      </div>
+    </div>
+  )
+}
 
 // ─── Photos sub-panel ─────────────────────────────────────────────────────────
 
@@ -296,9 +468,12 @@ export function EpisodeDetailPanel({
   gateLevel: number
 }) {
   return (
-    <div className="border-t border-[#1c1f26] mt-3 pt-3 grid grid-cols-2 gap-6">
-      <PhotosPanel episode={episode} />
-      <RevelationsPanel episode={episode} gateLevel={gateLevel} />
+    <div className="border-t border-[#1c1f26] mt-3 pt-3">
+      <EpisodeEditForm episode={episode} />
+      <div className="grid grid-cols-2 gap-6">
+        <PhotosPanel episode={episode} />
+        <RevelationsPanel episode={episode} gateLevel={gateLevel} />
+      </div>
     </div>
   )
 }

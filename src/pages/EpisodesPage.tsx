@@ -12,10 +12,13 @@ const TYPE_ABBREV: Record<string, string> = {
   classifying:        'C',
   behavior_collective:'B',
   system_alert:       'SA',
-  grunt_work:         'GW',
+  duty_log:           'DL',
   copycat:            'CPY',
   engineer_analysis:  'EA',
   biologist_analysis: 'BA',
+  faction_dossier:    'FD',
+  anomaly_report:     'AR',
+  wanderer:           'W',
 }
 
 const GATE_LABELS: Record<number, string> = {
