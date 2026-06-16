@@ -331,6 +331,8 @@ export const EPISODE_TYPE_LABELS: Record<string, string> = {
   'copycat':            'Copycat',
   'wanderer':           'Wanderer',
   'duty_log':           'Duty Log',
+  'faction_dossier':    'Faction Dossier',
+  'anomaly_report':     'Anomaly Report',
 }
 
 // Muscle's ground-level facility log. Two flavors, one type:
@@ -352,4 +354,6 @@ export const EPISODE_TYPE_RUNTIME: Record<string, RuntimeClass> = {
   'copycat':            'LONG',
   'wanderer':           'STANDARD',
   'duty_log':           'SHORT',
+  'faction_dossier':    'STANDARD',
+  'anomaly_report':     'STANDARD',
 }

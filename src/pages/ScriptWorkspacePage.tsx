@@ -170,7 +170,7 @@ export function ScriptWorkspacePage() {
               }`}
             >
               <div className="flex items-center gap-2 mb-0.5">
-                <div className="font-mono text-[10px] tracking-widest" style={{ color: STATUS_COLORS[ep.status].split(' ')[0].replace('text-[', '').replace(']', '') }}>
+                <div className="font-mono text-[10px] tracking-widest" style={{ color: (STATUS_COLORS[ep.status] ?? STATUS_COLORS.planned).split(' ')[0].replace('text-[', '').replace(']', '') }}>
                   EP {ep.episode_number ?? '—'}
                 </div>
                 {ep.episode_type && (
