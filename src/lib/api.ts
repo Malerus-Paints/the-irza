@@ -202,6 +202,39 @@ export async function updateEpisode(id: string, payload: Partial<Episode>): Prom
   return data
 }
 
+export async function reorderEpisodes(): Promise<void> {
+  const { data, error } = await supabase
+    .from('episodes')
+    .select('id, posted_date')
+    .order('posted_date', { ascending: true, nullsFirst: false })
+    .order('tracker_id', { ascending: true })
+  if (error) throw error
+
+  const dated = (data ?? []).filter((ep) => ep.posted_date != null)
+  const undated = (data ?? []).filter((ep) => ep.posted_date == null)
+
+  // Pass 1: shift all dated episodes to unique negative temp values to vacate positive slots
+  await Promise.all(
+    dated.map((ep, i) =>
+      supabase.from('episodes').update({ episode_number: -(i + 1) }).eq('id', ep.id)
+    )
+  )
+  // Pass 2: assign final 1-based numbers in posted_date order
+  await Promise.all(
+    dated.map((ep, i) =>
+      supabase.from('episodes').update({ episode_number: i + 1 }).eq('id', ep.id)
+    )
+  )
+  // Clear episode_number for episodes with no posted_date
+  if (undated.length > 0) {
+    await Promise.all(
+      undated.map((ep) =>
+        supabase.from('episodes').update({ episode_number: null }).eq('id', ep.id)
+      )
+    )
+  }
+}
+
 // ─── Episode Photos ───────────────────────────────────────────────────────────
 
 const EPISODE_PHOTO_SELECT = '*, episode:episodes(id, episode_number, title), exhibit:exhibits(id, name, miniature_name)'

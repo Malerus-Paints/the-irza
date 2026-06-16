@@ -160,6 +160,14 @@ export function useUpdateEpisode() {
   })
 }
 
+export function useReorderEpisodes() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: api.reorderEpisodes,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['episodes'] }),
+  })
+}
+
 // ─── Episode Photos ───────────────────────────────────────────────────────────
 
 export function useEpisodePhotos(episodeId?: string) {

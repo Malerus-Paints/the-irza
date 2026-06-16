@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   useEpisodePhotos, useCreateEpisodePhoto, useDeleteEpisodePhoto,
   useExhibitRevelations, useCreateExhibitRevelation, useDeleteExhibitRevelation,
-  useUpdateEpisode,
+  useUpdateEpisode, useReorderEpisodes, useExhibits,
 } from '../hooks/useData'
 import { EPISODE_TYPE_LABELS, EPISODE_TYPE_RUNTIME } from '../types'
 import type { Episode, EpisodeStatus, PhotoRole, RevelationState, RevealedField, RuntimeClass } from '../types'
@@ -72,6 +72,7 @@ type EditFields = {
   status: EpisodeStatus
   phase: string
   posted_date: string
+  exhibit_id: string
   notes: string
 }
 
@@ -84,12 +85,15 @@ function toEditFields(ep: Episode): EditFields {
     status: ep.status,
     phase: String(ep.phase),
     posted_date: ep.posted_date ?? '',
+    exhibit_id: ep.exhibit_id ?? '',
     notes: ep.notes ?? '',
   }
 }
 
 function EpisodeEditForm({ episode }: { episode: Episode }) {
   const update = useUpdateEpisode()
+  const reorder = useReorderEpisodes()
+  const { data: exhibits = [] } = useExhibits()
   const [fields, setFields] = useState<EditFields>(() => toEditFields(episode))
   const [isDirty, setIsDirty] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -121,10 +125,9 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
 
     const epNumRaw = fields.episode_number.trim()
     const epNum = epNumRaw !== '' ? parseInt(epNumRaw) : null
-    // Only include episode_number in payload if it actually changed, to avoid
-    // spurious unique-constraint conflicts when the field is just re-submitted
     const origEpNum = episode.episode_number
     const epNumChanged = epNum !== origEpNum
+    const dateChanged = (fields.posted_date.trim() || null) !== (episode.posted_date ?? null)
 
     update.mutate(
       {
@@ -137,16 +140,21 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
           status: fields.status,
           phase: parseInt(fields.phase) || 1,
           posted_date: fields.posted_date.trim() || null,
+          exhibit_id: fields.exhibit_id || null,
           notes: fields.notes.trim() || null,
         },
       },
       {
-        onSuccess: () => { setIsDirty(false); setSaveError(null) },
+        onSuccess: () => {
+          setIsDirty(false)
+          setSaveError(null)
+          if (dateChanged || epNumChanged) reorder.mutate()
+        },
         onError: (err: unknown) => {
           const msg = (err as { message?: string })?.message ?? 'Unknown error'
           setSaveError(
             msg.includes('unique') || msg.includes('duplicate')
-              ? 'EP # already taken — choose a different number'
+              ? 'EP # already taken — reorder will fix this automatically'
               : msg
           )
         },
@@ -167,10 +175,10 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
           )}
           <button
             onClick={handleSave}
-            disabled={!isDirty || !fields.title.trim() || update.isPending}
+            disabled={!isDirty || !fields.title.trim() || update.isPending || reorder.isPending}
             className="font-mono text-[9px] tracking-widest px-3 py-1 rounded bg-[#66ff99]/10 text-[#66ff99] hover:bg-[#66ff99]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
-            {update.isPending ? 'SAVING...' : 'SAVE'}
+            {reorder.isPending ? 'REORDERING...' : update.isPending ? 'SAVING...' : 'SAVE'}
           </button>
         </div>
       </div>
@@ -259,6 +267,21 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
             className={inputCls}
           />
         </div>
+      </div>
+      <div className="mb-2">
+        <label className={labelCls}>Exhibit</label>
+        <select
+          value={fields.exhibit_id}
+          onChange={(e) => set({ exhibit_id: e.target.value })}
+          className={inputCls}
+        >
+          <option value="">— NONE —</option>
+          {exhibits.map((ex) => (
+            <option key={ex.id} value={ex.id}>
+              {ex.name || ex.miniature_name}
+            </option>
+          ))}
+        </select>
       </div>
       <div>
         <label className={labelCls}>Notes</label>
