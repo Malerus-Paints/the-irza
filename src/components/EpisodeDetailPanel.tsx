@@ -56,58 +56,76 @@ type EditFields = {
   runtime_class: RuntimeClass | ''
   status: EpisodeStatus
   phase: string
+  posted_date: string
   notes: string
+}
+
+function toEditFields(ep: Episode): EditFields {
+  return {
+    title: ep.title,
+    episode_number: ep.episode_number != null ? String(ep.episode_number) : '',
+    episode_type: ep.episode_type ?? '',
+    runtime_class: ep.runtime_class ?? '',
+    status: ep.status,
+    phase: String(ep.phase),
+    posted_date: ep.posted_date ?? '',
+    notes: ep.notes ?? '',
+  }
 }
 
 function EpisodeEditForm({ episode }: { episode: Episode }) {
   const update = useUpdateEpisode()
-
-  const [fields, setFields] = useState<EditFields>({
-    title: episode.title,
-    episode_number: episode.episode_number != null ? String(episode.episode_number) : '',
-    episode_type: episode.episode_type ?? '',
-    runtime_class: episode.runtime_class ?? '',
-    status: episode.status,
-    phase: String(episode.phase),
-    notes: episode.notes ?? '',
-  })
+  const [fields, setFields] = useState<EditFields>(() => toEditFields(episode))
   const [isDirty, setIsDirty] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
-  // Reset if episode changes
   useEffect(() => {
-    setFields({
-      title: episode.title,
-      episode_number: episode.episode_number != null ? String(episode.episode_number) : '',
-      episode_type: episode.episode_type ?? '',
-      runtime_class: episode.runtime_class ?? '',
-      status: episode.status,
-      phase: String(episode.phase),
-      notes: episode.notes ?? '',
-    })
+    setFields(toEditFields(episode))
     setIsDirty(false)
+    setSaveError(null)
   }, [episode.id])
 
   function set(patch: Partial<EditFields>) {
     setFields((f) => ({ ...f, ...patch }))
     setIsDirty(true)
+    setSaveError(null)
   }
 
   function handleSave() {
     if (!fields.title.trim()) return
+
+    const epNumRaw = fields.episode_number.trim()
+    const epNum = epNumRaw !== '' ? parseInt(epNumRaw) : null
+    // Only include episode_number in payload if it actually changed, to avoid
+    // spurious unique-constraint conflicts when the field is just re-submitted
+    const origEpNum = episode.episode_number
+    const epNumChanged = epNum !== origEpNum
+
     update.mutate(
       {
         id: episode.id,
         payload: {
           title: fields.title.trim(),
-          episode_number: fields.episode_number !== '' ? parseInt(fields.episode_number) : null,
+          ...(epNumChanged ? { episode_number: epNum } : {}),
           episode_type: fields.episode_type || null,
           runtime_class: (fields.runtime_class || null) as RuntimeClass | null,
           status: fields.status,
           phase: parseInt(fields.phase) || 1,
+          posted_date: fields.posted_date.trim() || null,
           notes: fields.notes.trim() || null,
         },
       },
-      { onSuccess: () => setIsDirty(false) }
+      {
+        onSuccess: () => { setIsDirty(false); setSaveError(null) },
+        onError: (err: unknown) => {
+          const msg = (err as { message?: string })?.message ?? 'Unknown error'
+          setSaveError(
+            msg.includes('unique') || msg.includes('duplicate')
+              ? 'EP # already taken — choose a different number'
+              : msg
+          )
+        },
+      }
     )
   }
 
@@ -116,8 +134,12 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
       <div className="flex items-center justify-between mb-3">
         <span className="font-mono text-[9px] text-[#5a6175] tracking-widest">EPISODE FIELDS</span>
         <div className="flex items-center gap-3">
-          {isDirty && <span className="font-mono text-[9px] text-[#e8b84b] tracking-widest">UNSAVED</span>}
-          {update.isError && <span className="font-mono text-[9px] text-[#cc3355] tracking-widest">SAVE FAILED</span>}
+          {isDirty && !saveError && <span className="font-mono text-[9px] text-[#e8b84b] tracking-widest">UNSAVED</span>}
+          {saveError && (
+            <span className="font-mono text-[9px] text-[#cc3355] tracking-widest max-w-[220px] text-right leading-tight">
+              {saveError}
+            </span>
+          )}
           <button
             onClick={handleSave}
             disabled={!isDirty || !fields.title.trim() || update.isPending}
@@ -171,7 +193,7 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
           </select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2 mb-2">
         <div>
           <label className={labelCls}>Type</label>
           <select
@@ -202,8 +224,17 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
             <option value="EVENT">EVENT — as needed</option>
           </select>
         </div>
+        <div>
+          <label className={labelCls}>Posted Date</label>
+          <input
+            type="date"
+            value={fields.posted_date}
+            onChange={(e) => set({ posted_date: e.target.value })}
+            className={inputCls}
+          />
+        </div>
       </div>
-      <div className="mt-2">
+      <div>
         <label className={labelCls}>Notes</label>
         <textarea
           rows={2}
