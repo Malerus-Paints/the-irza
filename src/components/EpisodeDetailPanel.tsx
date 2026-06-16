@@ -186,11 +186,12 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
         <div>
           <label className={labelCls}>Ep #</label>
           <input
-            type="number"
-            min={1}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             placeholder="—"
             value={fields.episode_number}
-            onChange={(e) => onEpNumChange(e.target.value)}
+            onChange={(e) => onEpNumChange(e.target.value.replace(/\D/g, ''))}
             className={inputCls}
           />
         </div>

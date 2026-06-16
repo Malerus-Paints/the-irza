@@ -43,6 +43,11 @@ type EpisodeMeta = Episode & {
 
 function computeMeta(episodes: Episode[]): EpisodeMeta[] {
   const sorted = [...episodes].sort((a, b) => {
+    const aDate = a.posted_date
+    const bDate = b.posted_date
+    if (aDate && bDate) return aDate.localeCompare(bDate)
+    if (aDate && !bDate) return -1
+    if (!aDate && bDate) return 1
     if (a.episode_number == null) return 1
     if (b.episode_number == null) return -1
     return a.episode_number - b.episode_number
