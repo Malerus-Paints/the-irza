@@ -489,7 +489,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
     // Fetch armies owned by the user
     const { data: armies, error: armiesError } = await paintingLibSupabase
       .from('armies')
-      .select('id, name, game_system, description')
+      .select('id, name')
       .eq('user_id', paintingLibraryUserId)
 
     if (armiesError) throw armiesError
@@ -527,8 +527,6 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
 
         const factionPayload = {
           name: army.name,
-          system_status: army.game_system || 'UNCLASSIFIED',
-          lore_text: army.description || null,
         }
 
         let factionId: string
@@ -543,6 +541,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           const newFaction = await createFaction({
             faction_id: `F-${factionNum}`,
             ...factionPayload,
+            system_status: 'UNCLASSIFIED',
             domain: null,
             threat_level: null,
             behavioral_classification: null,
@@ -588,13 +587,8 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
         const figureIds = figureArmies.map((fa) => fa.figure_id)
         const { data: figures, error: figuresError } = await paintingLibSupabase
           .from('figures')
-          .select('id, name, status, base_size_mm, notes, lore, is_group, scheme_summary')
+          .select('id, name, status, is_group')
           .in('id', figureIds)
-
-        // Log for debugging
-        if (figures && figures.length > 0) {
-          console.log('Sample figure data:', figures[0])
-        }
 
         if (figuresError) {
           result.errors.push({
@@ -622,7 +616,6 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               name: group.name,
               faction_id: factionId,
               system_status: 'MONITORING',
-              lore_text: group.lore || group.notes || null,
             }
 
             if (existingSquad && existingSquad.length > 0) {
@@ -671,12 +664,6 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               .eq('drive_doc_id', minitrackId)
               .limit(1)
 
-            let exhibitStatus: EntryStatus = 'drafted'
-            if (figure.status === 'complete' || figure.status === 'display') {
-              exhibitStatus = 'needs-lore'
-            }
-
-            const figureData = figure as any
             const exhibitData = {
               exhibit_number: null as string | null,
               name: figure.name,
@@ -687,15 +674,15 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               threat_level: null,
               behavioral_pattern: null,
               miniature_name: figure.name,
-              paint_scheme: figureData.scheme_summary ? String(figureData.scheme_summary).trim() : null,
-              base_size: figure.base_size_mm ? `${figure.base_size_mm}mm` : null,
+              paint_scheme: null,
+              base_size: null,
               episode_type: null,
               runtime_class: null,
               episode_number: null,
               filmed: false,
               posted_date: null,
               platform: null,
-              lore_text: figure.lore || figure.notes || null,
+              lore_text: null,
               curator_interpretation: null,
               engineer_assessment: null,
               biologist_assessment: null,
@@ -706,14 +693,13 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               backlog_release: false,
               drive_doc_id: minitrackId,
               drive_doc_url: null,
-              status: exhibitStatus,
+              status: 'drafted' as EntryStatus,
             }
 
             if (existing && existing.length > 0) {
               await updateExhibit(existing[0].id, {
                 name: exhibitData.name,
                 faction_id: exhibitData.faction_id,
-                paint_scheme: exhibitData.paint_scheme,
               })
               result.figures_updated++
             } else {
