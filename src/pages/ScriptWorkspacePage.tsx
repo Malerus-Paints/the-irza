@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useEpisodes, useUpdateEpisode, useCreateEpisode } from '../hooks/useData'
 import { Spinner } from '../components/ui'
+import { ScriptBuilderPanel } from '../components/ScriptBuilderPanel'
 import { EPISODE_TYPE_LABELS, EPISODE_TYPE_RUNTIME } from '../types'
-import type { Episode, EpisodeStatus, RuntimeClass } from '../types'
+import type { Episode, EpisodeStatus, RuntimeClass, EpisodeScriptJson } from '../types'
+import type { BuilderState } from '../lib/script-builder'
 
 const CHARACTERS = [
   { name: 'CURATOR',   color: '#F2E9DC', style: 'Metaphor over fact. Weighted conclusions. Never states anything directly.' },
@@ -56,6 +58,7 @@ export function ScriptWorkspacePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [scriptText, setScriptText] = useState('')
   const [isDirty, setIsDirty] = useState(false)
+  const [mode, setMode] = useState<'text' | 'builder'>('text')
   const [showGuide, setShowGuide] = useState(true)
   const [creating, setCreating] = useState(false)
   const [newEp, setNewEp] = useState<NewEpForm>(emptyNewEp())
@@ -79,6 +82,16 @@ export function ScriptWorkspacePage() {
       { onSuccess: () => setIsDirty(false) }
     )
   }, [selectedEpisode, scriptText, updateEpisode])
+
+  const handleBuilderSave = useCallback((state: BuilderState) => {
+    if (!selectedEpisode) return
+    const nextStatus: EpisodeStatus =
+      selectedEpisode.status === 'planned' ? 'scripted' : selectedEpisode.status
+    updateEpisode.mutate({
+      id: selectedEpisode.id,
+      payload: { script_json: state as unknown as EpisodeScriptJson, status: nextStatus },
+    })
+  }, [selectedEpisode, updateEpisode])
 
   // Ctrl+S to save
   useEffect(() => {
@@ -235,7 +248,25 @@ export function ScriptWorkspacePage() {
                     {selectedEpisode.title}
                   </h2>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                  {/* Mode toggle */}
+                  <div className="flex items-center gap-1 mr-2">
+                    {(['text', 'builder'] as const).map(m => (
+                      <button
+                        key={m}
+                        onClick={() => setMode(m)}
+                        className={`font-mono text-[10px] tracking-widest px-2 py-1 rounded border transition-colors ${
+                          mode === m
+                            ? m === 'builder'
+                              ? 'border-[#e8b84b]/40 text-[#e8b84b] bg-[#e8b84b]/5'
+                              : 'border-[#66ff99]/40 text-[#66ff99] bg-[#66ff99]/5'
+                            : 'border-[#1c1f26] text-[#3d4352] hover:border-[#2a2e38] hover:text-[#5a6175]'
+                        }`}
+                      >
+                        {m.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
                   {/* Status stepper */}
                   {STATUS_FLOW.map((s) => (
                     <button
@@ -255,47 +286,58 @@ export function ScriptWorkspacePage() {
               </div>
             </div>
 
-            {/* Script textarea */}
-            <div className="flex-1 flex flex-col min-h-0 px-5 py-4">
-              <textarea
-                value={scriptText}
-                onChange={(e) => { setScriptText(e.target.value); setIsDirty(true) }}
-                placeholder={`EPISODE: ${selectedEpisode.title}\n\n[SCENE OPEN]\n\nCURATOR: \nMUSCLE: \nENGINEER: \nBIOLOGIST: \nSYSTEM: \n\n[SCENE CLOSE]`}
-                className="flex-1 w-full bg-transparent text-[#dde0e6] font-mono text-sm leading-relaxed placeholder-[#3d4352] focus:outline-none resize-none"
-                spellCheck={false}
+            {/* Builder mode */}
+            {mode === 'builder' ? (
+              <ScriptBuilderPanel
+                episode={selectedEpisode}
+                onSave={handleBuilderSave}
+                isSaving={updateEpisode.isPending}
               />
-            </div>
+            ) : (
+              <>
+                {/* Script textarea */}
+                <div className="flex-1 flex flex-col min-h-0 px-5 py-4">
+                  <textarea
+                    value={scriptText}
+                    onChange={(e) => { setScriptText(e.target.value); setIsDirty(true) }}
+                    placeholder={`EPISODE: ${selectedEpisode.title}\n\n[SCENE OPEN]\n\nCURATOR: \nMUSCLE: \nENGINEER: \nBIOLOGIST: \nSYSTEM: \n\n[SCENE CLOSE]`}
+                    className="flex-1 w-full bg-transparent text-[#dde0e6] font-mono text-sm leading-relaxed placeholder-[#3d4352] focus:outline-none resize-none"
+                    spellCheck={false}
+                  />
+                </div>
 
-            {/* Footer */}
-            <div className="px-5 py-3 border-t border-[#1c1f26] flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-4">
-                <span className="font-mono text-[10px] text-[#3d4352] tracking-widest">
-                  {wordCount} WORDS
-                </span>
-                {isDirty && (
-                  <span className="font-mono text-[10px] text-[#e8b84b] tracking-widest">
-                    UNSAVED
-                  </span>
-                )}
-                {updateEpisode.isError && (
-                  <span className="font-mono text-[10px] text-[#cc3355] tracking-widest">
-                    SAVE FAILED
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-[10px] text-[#3d4352] tracking-widest">
-                  CTRL+S
-                </span>
-                <button
-                  onClick={handleSave}
-                  disabled={!isDirty || updateEpisode.isPending}
-                  className="bg-[#66ff99]/10 hover:bg-[#66ff99]/20 border border-[#66ff99]/30 text-[#66ff99] font-mono text-[10px] tracking-widest px-3 py-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  {updateEpisode.isPending ? 'SAVING...' : 'SAVE SCRIPT'}
-                </button>
-              </div>
-            </div>
+                {/* Footer */}
+                <div className="px-5 py-3 border-t border-[#1c1f26] flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-4">
+                    <span className="font-mono text-[10px] text-[#3d4352] tracking-widest">
+                      {wordCount} WORDS
+                    </span>
+                    {isDirty && (
+                      <span className="font-mono text-[10px] text-[#e8b84b] tracking-widest">
+                        UNSAVED
+                      </span>
+                    )}
+                    {updateEpisode.isError && (
+                      <span className="font-mono text-[10px] text-[#cc3355] tracking-widest">
+                        SAVE FAILED
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-[10px] text-[#3d4352] tracking-widest">
+                      CTRL+S
+                    </span>
+                    <button
+                      onClick={handleSave}
+                      disabled={!isDirty || updateEpisode.isPending}
+                      className="bg-[#66ff99]/10 hover:bg-[#66ff99]/20 border border-[#66ff99]/30 text-[#66ff99] font-mono text-[10px] tracking-widest px-3 py-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      {updateEpisode.isPending ? 'SAVING...' : 'SAVE SCRIPT'}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
