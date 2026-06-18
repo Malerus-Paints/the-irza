@@ -91,13 +91,13 @@ export function ExhibitDrawer({ exhibit, onClose }: Props) {
   const updateExhibit = useUpdateExhibit()
   const deleteExhibit = useDeleteExhibit()
 
-  // Auto-assign next exhibit number in create mode
+  // Auto-assign next exhibit number in create mode (parses trailing digits from "Ex - NNN" format)
   const nextExhibitNumber = (() => {
     const nums = exhibits
-      .map(e => parseInt(e.exhibit_number ?? '', 10))
+      .map(e => { const m = (e.exhibit_number ?? '').match(/(\d+)$/); return m ? parseInt(m[1], 10) : NaN })
       .filter(n => !isNaN(n))
     const max = nums.length > 0 ? Math.max(...nums) : 0
-    return String(max + 1).padStart(3, '0')
+    return `Ex - ${String(max + 1).padStart(3, '0')}`
   })()
 
   const isPending = createExhibit.isPending || updateExhibit.isPending || deleteExhibit.isPending
