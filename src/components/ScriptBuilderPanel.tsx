@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useExhibits, useFactions, useAnomalies } from '../hooks/useData'
+import type {
+  BuilderState, ShotEntry, DialogueEntry, UIEventEntry, GlitchEntry, AudioCueEntry,
+} from '../lib/script-builder'
 import {
-  BuilderState, ShotEntry, DialogueEntry, UIEventEntry, GlitchEntry, AudioCueEntry, InfoRow,
   LAYOUTS, CAMERA_MOVES, SPEAKERS, GLITCH_INTENSITIES, SYSTEMUI_VARIANTS, AUDIO_PRESETS, COMMON_AUDIO_CUES,
   defaultBuilderState, loadBuilderState,
   exhibitToCard, factionToCard, anomalyToCard,
