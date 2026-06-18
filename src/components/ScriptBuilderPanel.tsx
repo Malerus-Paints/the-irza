@@ -5,7 +5,7 @@ import type {
 } from '../lib/script-builder'
 import {
   LAYOUTS, CAMERA_MOVES, SPEAKERS, GLITCH_INTENSITIES, SYSTEMUI_VARIANTS, AUDIO_PRESETS, COMMON_AUDIO_CUES,
-  defaultBuilderState, loadBuilderState,
+  loadBuilderState,
   exhibitToCard, factionToCard, anomalyToCard,
   newShot, newDialogue, newUIEvent, newGlitch, newAudioCue, generateTS,
 } from '../lib/script-builder'

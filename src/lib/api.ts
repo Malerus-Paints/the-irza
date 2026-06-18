@@ -562,6 +562,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
             wanderer_assessment: null,
             muscle_assessment: null,
             footnotes: null,
+            lore_text: null,
           })
 
           factionId = newFaction.id
@@ -645,6 +646,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
                 wanderer_assessment: null,
                 muscle_assessment: null,
                 footnotes: null,
+                lore_text: null,
               })
               result.squads_created++
               nextSquadNum++
