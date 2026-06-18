@@ -611,6 +611,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
         for (const group of groups) {
           try {
             const groupMinitrackId = `minitrack:${group.id}`
+            const groupMinicodexUrl = `https://minicodex.app/figure/${group.id}`
             const { data: existingSquad } = await supabase
               .from('squads')
               .select('id')
@@ -621,6 +622,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               name: group.name,
               faction_id: factionId,
               system_status: 'MONITORING',
+              drive_doc_url: groupMinicodexUrl,
             }
 
             if (existingSquad && existingSquad.length > 0) {
@@ -638,7 +640,6 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
                 threat_level: null,
                 collective_behavior_type: null,
                 drive_doc_id: groupMinitrackId,
-                drive_doc_url: null,
                 status: 'drafted',
                 curator_interpretation: null,
                 engineer_assessment: null,
@@ -663,6 +664,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
         for (const figure of exhibits) {
           try {
             const minitrackId = `minitrack:${figure.id}`
+            const minicodexUrl = `https://minicodex.app/figure/${figure.id}`
 
             const { data: existing } = await supabase
               .from('exhibits')
@@ -698,7 +700,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               origin_reality_status: 'unknown' as const,
               backlog_release: false,
               drive_doc_id: minitrackId,
-              drive_doc_url: null,
+              drive_doc_url: minicodexUrl,
               status: 'drafted' as EntryStatus,
             }
 
@@ -706,6 +708,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
               await updateExhibit(existing[0].id, {
                 name: exhibitData.name,
                 faction_id: exhibitData.faction_id,
+                drive_doc_url: minicodexUrl,
               })
               result.figures_updated++
             } else {
@@ -762,6 +765,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
     for (const figure of unassignedFigures) {
       try {
         const minitrackId = `minitrack:${figure.id}`
+        const minicodexUrl = `https://minicodex.app/figure/${figure.id}`
         const { data: existing } = await supabase
           .from('anomalies')
           .select('id')
@@ -769,7 +773,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           .limit(1)
 
         if (existing && existing.length > 0) {
-          await updateAnomaly(existing[0].id, { designation: figure.name })
+          await updateAnomaly(existing[0].id, { designation: figure.name, drive_doc_url: minicodexUrl })
           result.anomalies_updated++
         } else {
           const anomalyNum = String(nextAnomalyNum).padStart(3, '0')
@@ -789,7 +793,7 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
             platform: null,
             lore_text: null,
             drive_doc_id: minitrackId,
-            drive_doc_url: null,
+            drive_doc_url: minicodexUrl,
             status: 'drafted',
           })
           result.anomalies_created++
