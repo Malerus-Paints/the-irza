@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   useEpisodePhotos, useCreateEpisodePhoto, useDeleteEpisodePhoto,
   useExhibitRevelations, useCreateExhibitRevelation, useDeleteExhibitRevelation,
-  useUpdateEpisode, useReorderEpisodes, useExhibits,
+  useUpdateEpisode, useReorderEpisodes, useExhibits, useFactions, useSquads,
 } from '../hooks/useData'
 import { EPISODE_TYPE_LABELS, EPISODE_TYPE_RUNTIME } from '../types'
 import type { Episode, EpisodeStatus, PhotoRole, RevelationState, RevealedField, RuntimeClass } from '../types'
@@ -73,6 +73,8 @@ type EditFields = {
   phase: string
   posted_date: string
   exhibit_id: string
+  faction_id: string
+  squad_id: string
   notes: string
 }
 
@@ -86,6 +88,8 @@ function toEditFields(ep: Episode): EditFields {
     phase: String(ep.phase),
     posted_date: ep.posted_date ?? '',
     exhibit_id: ep.exhibit_id ?? '',
+    faction_id: ep.faction_id ?? '',
+    squad_id: ep.squad_id ?? '',
     notes: ep.notes ?? '',
   }
 }
@@ -94,6 +98,8 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
   const update = useUpdateEpisode()
   const reorder = useReorderEpisodes()
   const { data: exhibits = [] } = useExhibits()
+  const { data: factions = [] } = useFactions()
+  const { data: squads = [] } = useSquads()
   const [fields, setFields] = useState<EditFields>(() => toEditFields(episode))
   const [isDirty, setIsDirty] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -140,7 +146,9 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
           status: fields.status,
           phase: parseInt(fields.phase) || 1,
           posted_date: fields.posted_date.trim() || null,
-          exhibit_id: fields.exhibit_id || null,
+          exhibit_id: fields.episode_type === 'faction_dossier' || fields.episode_type === 'behavior_collective' ? null : (fields.exhibit_id || null),
+          faction_id: fields.episode_type === 'faction_dossier' ? (fields.faction_id || null) : null,
+          squad_id: fields.episode_type === 'behavior_collective' ? (fields.squad_id || null) : null,
           notes: fields.notes.trim() || null,
         },
       },
@@ -269,19 +277,51 @@ function EpisodeEditForm({ episode }: { episode: Episode }) {
         </div>
       </div>
       <div className="mb-2">
-        <label className={labelCls}>Exhibit</label>
-        <select
-          value={fields.exhibit_id}
-          onChange={(e) => set({ exhibit_id: e.target.value })}
-          className={inputCls}
-        >
-          <option value="">— NONE —</option>
-          {exhibits.map((ex) => (
-            <option key={ex.id} value={ex.id}>
-              {ex.name || ex.miniature_name}
-            </option>
-          ))}
-        </select>
+        {fields.episode_type === 'faction_dossier' ? (
+          <>
+            <label className={labelCls}>Faction</label>
+            <select
+              value={fields.faction_id}
+              onChange={(e) => set({ faction_id: e.target.value })}
+              className={inputCls}
+            >
+              <option value="">— NONE —</option>
+              {factions.map((f) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+          </>
+        ) : fields.episode_type === 'behavior_collective' ? (
+          <>
+            <label className={labelCls}>Squad</label>
+            <select
+              value={fields.squad_id}
+              onChange={(e) => set({ squad_id: e.target.value })}
+              className={inputCls}
+            >
+              <option value="">— NONE —</option>
+              {squads.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </>
+        ) : (
+          <>
+            <label className={labelCls}>Exhibit</label>
+            <select
+              value={fields.exhibit_id}
+              onChange={(e) => set({ exhibit_id: e.target.value })}
+              className={inputCls}
+            >
+              <option value="">— NONE —</option>
+              {exhibits.map((ex) => (
+                <option key={ex.id} value={ex.id}>
+                  {ex.name || ex.miniature_name}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
       <div>
         <label className={labelCls}>Notes</label>

@@ -137,7 +137,9 @@ export interface Episode {
   exhibit_id: string | null
   exhibit?: { id: string; name: string; miniature_name: string | null } | null
   squad_id: string | null
+  squad?: { id: string; name: string } | null
   faction_id: string | null
+  faction?: { id: string; name: string } | null
   anomaly_id: string | null
   script_text: string | null       // legacy plain-text field — prefer script_json
   script_json: EpisodeScriptJson | null

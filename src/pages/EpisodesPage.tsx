@@ -30,15 +30,18 @@ const GATE_LABELS: Record<number, string> = {
 }
 
 const EXHIBIT_REQUIRED_TYPES = new Set([
-  'reclassification', 'classifying', 'behavior_collective',
-  'engineer_analysis', 'biologist_analysis',
+  'reclassification', 'classifying', 'engineer_analysis', 'biologist_analysis',
 ])
+const FACTION_REQUIRED_TYPES = new Set(['faction_dossier'])
+const SQUAD_REQUIRED_TYPES = new Set(['behavior_collective'])
 
 type EpisodeMeta = Episode & {
   typePrefix: string
   arcNumber: number | undefined
   gateWindow: number
   needsExhibit: boolean
+  needsFaction: boolean
+  needsSquad: boolean
 }
 
 function computeMeta(episodes: Episode[]): EpisodeMeta[] {
@@ -79,8 +82,10 @@ function computeMeta(episodes: Episode[]): EpisodeMeta[] {
     else gateWindow = 5
 
     const needsExhibit = EXHIBIT_REQUIRED_TYPES.has(type) && !ep.exhibit_id
+    const needsFaction = FACTION_REQUIRED_TYPES.has(type) && !ep.faction_id
+    const needsSquad = SQUAD_REQUIRED_TYPES.has(type) && !ep.squad_id
 
-    return { ...ep, typePrefix, arcNumber, gateWindow, needsExhibit }
+    return { ...ep, typePrefix, arcNumber, gateWindow, needsExhibit, needsFaction, needsSquad }
   })
 }
 
@@ -299,7 +304,7 @@ export function EpisodesPage() {
                         className={`transition-colors cursor-pointer select-none ${
                           isExpanded
                             ? 'border-[#2a2e38]'
-                            : ep.needsExhibit
+                            : ep.needsExhibit || ep.needsFaction || ep.needsSquad
                               ? 'border-[#e8b84b]/20 hover:border-[#e8b84b]/40'
                               : 'hover:border-[#2a2e38]'
                         }`}
@@ -312,10 +317,22 @@ export function EpisodesPage() {
                             {ep.typePrefix}
                           </div>
 
-                          {/* Title + exhibit */}
+                          {/* Title + linked entity */}
                           <div className="flex-1 min-w-0">
                             <div className="font-sans text-sm text-[#dde0e6]">{ep.title}</div>
-                            {ep.exhibit ? (
+                            {ep.episode_type === 'faction_dossier' ? (
+                              ep.faction ? (
+                                <div className="font-mono text-[10px] text-[#5a6175] mt-0.5">{ep.faction.name}</div>
+                              ) : ep.needsFaction ? (
+                                <div className="font-mono text-[10px] text-[#e8b84b]/50 mt-0.5">NO FACTION ASSIGNED</div>
+                              ) : null
+                            ) : ep.episode_type === 'behavior_collective' ? (
+                              ep.squad ? (
+                                <div className="font-mono text-[10px] text-[#5a6175] mt-0.5">{ep.squad.name}</div>
+                              ) : ep.needsSquad ? (
+                                <div className="font-mono text-[10px] text-[#e8b84b]/50 mt-0.5">NO SQUAD ASSIGNED</div>
+                              ) : null
+                            ) : ep.exhibit ? (
                               <div className="font-mono text-[10px] text-[#5a6175] mt-0.5">
                                 {ep.exhibit.name}
                                 {ep.exhibit.miniature_name && ep.exhibit.miniature_name !== ep.exhibit.name && (
@@ -323,9 +340,7 @@ export function EpisodesPage() {
                                 )}
                               </div>
                             ) : ep.needsExhibit ? (
-                              <div className="font-mono text-[10px] text-[#e8b84b]/50 mt-0.5">
-                                NO EXHIBIT ASSIGNED
-                              </div>
+                              <div className="font-mono text-[10px] text-[#e8b84b]/50 mt-0.5">NO EXHIBIT ASSIGNED</div>
                             ) : null}
                           </div>
 
