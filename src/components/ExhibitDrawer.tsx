@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useCreateExhibit, useUpdateExhibit, useDeleteExhibit, useFactions } from '../hooks/useData'
+import { useCreateExhibit, useUpdateExhibit, useDeleteExhibit, useFactions, useExhibits } from '../hooks/useData'
 import { Button } from './ui'
 import { EPISODE_TYPE_LABELS } from '../types'
 import type {
@@ -9,7 +9,6 @@ import type {
 
 type ExhibitFormData = {
   name: string
-  exhibit_number: string
   faction_id: string
   status: EntryStatus
   archive_status: ArchiveStatus
@@ -33,7 +32,6 @@ type ExhibitFormData = {
 function emptyForm(): ExhibitFormData {
   return {
     name: '',
-    exhibit_number: '',
     faction_id: '',
     status: 'drafted',
     archive_status: 'UNCLASSIFIED',
@@ -58,7 +56,6 @@ function emptyForm(): ExhibitFormData {
 function exhibitToForm(e: Exhibit): ExhibitFormData {
   return {
     name: e.name,
-    exhibit_number: e.exhibit_number ?? '',
     faction_id: e.faction_id ?? '',
     status: e.status,
     archive_status: e.archive_status,
@@ -89,9 +86,19 @@ export function ExhibitDrawer({ exhibit, onClose }: Props) {
   const [form, setForm] = useState<ExhibitFormData>(exhibit ? exhibitToForm(exhibit) : emptyForm())
   const [confirmDelete, setConfirmDelete] = useState(false)
   const { data: factions = [] } = useFactions()
+  const { data: exhibits = [] } = useExhibits()
   const createExhibit = useCreateExhibit()
   const updateExhibit = useUpdateExhibit()
   const deleteExhibit = useDeleteExhibit()
+
+  // Auto-assign next exhibit number in create mode
+  const nextExhibitNumber = (() => {
+    const nums = exhibits
+      .map(e => parseInt(e.exhibit_number ?? '', 10))
+      .filter(n => !isNaN(n))
+    const max = nums.length > 0 ? Math.max(...nums) : 0
+    return String(max + 1).padStart(3, '0')
+  })()
 
   const isPending = createExhibit.isPending || updateExhibit.isPending || deleteExhibit.isPending
   const isEdit = !!exhibit
@@ -107,7 +114,6 @@ export function ExhibitDrawer({ exhibit, onClose }: Props) {
   const handleSave = () => {
     const payload = {
       name: form.name.trim(),
-      exhibit_number: form.exhibit_number.trim() || null,
       faction_id: form.faction_id || null,
       status: form.status,
       archive_status: form.archive_status,
@@ -129,11 +135,13 @@ export function ExhibitDrawer({ exhibit, onClose }: Props) {
     }
 
     if (isEdit) {
+      // exhibit_number is intentionally excluded — it cannot change after assignment
       updateExhibit.mutate({ id: exhibit!.id, payload }, { onSuccess: onClose })
     } else {
       createExhibit.mutate(
         {
           ...payload,
+          exhibit_number: nextExhibitNumber,
           wanderer_assessment: null,
           muscle_assessment: null,
           footnotes: null,
@@ -188,7 +196,9 @@ export function ExhibitDrawer({ exhibit, onClose }: Props) {
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="EXHIBIT NUMBER">
-                <TextInput value={form.exhibit_number} onChange={(v) => set('exhibit_number', v)} placeholder="e.g. 001" />
+                <div className="w-full bg-[#0d0f14] border border-[#1c1f26] rounded px-3 py-2 text-sm font-mono text-[#5a6175]">
+                  {isEdit ? (exhibit!.exhibit_number ?? '—') : nextExhibitNumber}
+                </div>
               </Field>
               <Field label="FACTION">
                 <SelectInput
