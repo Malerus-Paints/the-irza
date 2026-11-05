@@ -449,8 +449,11 @@ export interface SyncResult {
   squads_updated: number
   figures_created: number
   figures_updated: number
+  figures_deleted: number
+  squads_deleted: number
   anomalies_created: number
   anomalies_updated: number
+  anomalies_deleted: number
   errors: { army_name?: string; group_name?: string; figure_name?: string; error: string }[]
 }
 
@@ -474,8 +477,11 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
     squads_updated: 0,
     figures_created: 0,
     figures_updated: 0,
+    figures_deleted: 0,
+    squads_deleted: 0,
     anomalies_created: 0,
     anomalies_updated: 0,
+    anomalies_deleted: 0,
     errors: [],
   }
 
@@ -516,6 +522,9 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
       const match = existingSquads[0].squad_id.match(/S-(\d+)/)
       if (match) nextSquadNum = parseInt(match[1]) + 1
     }
+
+    const seenExhibitMinitrackIds = new Set<string>()
+    const seenSquadMinitrackIds = new Set<string>()
 
     // Process each army
     for (const army of armies) {
@@ -609,8 +618,9 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
 
         // Create or update squads from is_group figures
         for (const group of groups) {
+          const groupMinitrackId = `minitrack:${group.id}`
+          seenSquadMinitrackIds.add(groupMinitrackId)
           try {
-            const groupMinitrackId = `minitrack:${group.id}`
             const groupMinicodexUrl = `https://minicodex.app/figure/${group.id}`
             const { data: existingSquad } = await supabase
               .from('squads')
@@ -662,8 +672,9 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
 
         // Create or update exhibits from non-group figures
         for (const figure of exhibits) {
+          const minitrackId = `minitrack:${figure.id}`
+          seenExhibitMinitrackIds.add(minitrackId)
           try {
-            const minitrackId = `minitrack:${figure.id}`
             const minicodexUrl = `https://minicodex.app/figure/${figure.id}`
 
             const { data: existing } = await supabase
@@ -762,9 +773,12 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
       if (match) nextAnomalyNum = parseInt(match[1]) + 1
     }
 
+    const seenAnomalyMinitrackIds = new Set<string>()
+
     for (const figure of unassignedFigures) {
+      const minitrackId = `minitrack:${figure.id}`
+      seenAnomalyMinitrackIds.add(minitrackId)
       try {
-        const minitrackId = `minitrack:${figure.id}`
         const minicodexUrl = `https://minicodex.app/figure/${figure.id}`
         const { data: existing } = await supabase
           .from('anomalies')
@@ -804,6 +818,43 @@ export async function syncFromPaintingLibrary(paintingLibraryUserId: string): Pr
           figure_name: figure.name,
           error: `Failed to sync anomaly: ${extractErrorMessage(anomalyErr)}`,
         })
+      }
+    }
+
+    // Deletion phase — remove IRZA records no longer present in The Zoo
+    const { data: irzaExhibits } = await supabase.from('exhibits').select('id, drive_doc_id').like('drive_doc_id', 'minitrack:%')
+    for (const ex of irzaExhibits ?? []) {
+      if (ex.drive_doc_id && !seenExhibitMinitrackIds.has(ex.drive_doc_id)) {
+        try {
+          await deleteExhibit(ex.id)
+          result.figures_deleted++
+        } catch (delErr) {
+          result.errors.push({ figure_name: ex.drive_doc_id, error: `Failed to delete exhibit: ${extractErrorMessage(delErr)}` })
+        }
+      }
+    }
+
+    const { data: irzaSquads } = await supabase.from('squads').select('id, drive_doc_id').like('drive_doc_id', 'minitrack:%')
+    for (const sq of irzaSquads ?? []) {
+      if (sq.drive_doc_id && !seenSquadMinitrackIds.has(sq.drive_doc_id)) {
+        try {
+          await deleteSquad(sq.id)
+          result.squads_deleted++
+        } catch (delErr) {
+          result.errors.push({ group_name: sq.drive_doc_id, error: `Failed to delete squad: ${extractErrorMessage(delErr)}` })
+        }
+      }
+    }
+
+    const { data: irzaAnomalies } = await supabase.from('anomalies').select('id, drive_doc_id').like('drive_doc_id', 'minitrack:%')
+    for (const an of irzaAnomalies ?? []) {
+      if (an.drive_doc_id && !seenAnomalyMinitrackIds.has(an.drive_doc_id)) {
+        try {
+          await deleteAnomaly(an.id)
+          result.anomalies_deleted++
+        } catch (delErr) {
+          result.errors.push({ figure_name: an.drive_doc_id, error: `Failed to delete anomaly: ${extractErrorMessage(delErr)}` })
+        }
       }
     }
   } catch (err) {

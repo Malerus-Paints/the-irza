@@ -178,7 +178,7 @@ export function Card({ children, className = '', onClick }: { children: React.Re
 
 interface SyncStatusProps {
   status: 'idle' | 'pending' | 'success' | 'error'
-  result?: { armies_created: number; armies_updated: number; squads_created: number; squads_updated: number; figures_created: number; figures_updated: number; anomalies_created: number; anomalies_updated: number; errors: any[] }
+  result?: { armies_created: number; armies_updated: number; squads_created: number; squads_updated: number; figures_created: number; figures_updated: number; figures_deleted: number; squads_deleted: number; anomalies_created: number; anomalies_updated: number; anomalies_deleted: number; errors: any[] }
   error?: Error | null
 }
 
@@ -207,15 +207,16 @@ export function SyncStatus({ status, result, error }: SyncStatusProps) {
   if (status === 'success' && result) {
     const totalCreated = result.armies_created + result.squads_created + result.figures_created + result.anomalies_created
     const totalUpdated = result.armies_updated + result.squads_updated + result.figures_updated + result.anomalies_updated
+    const totalDeleted = (result.figures_deleted ?? 0) + (result.squads_deleted ?? 0) + (result.anomalies_deleted ?? 0)
 
     return (
       <Card className="border-[#66ff99]/20 bg-[#066630]/10">
         <div className="flex flex-col gap-2">
           <p className="font-mono text-sm text-[#66ff99]">
-            ✓ SYNC COMPLETE: {totalCreated} created · {totalUpdated} updated
+            ✓ SYNC COMPLETE: {totalCreated} created · {totalUpdated} updated{totalDeleted > 0 ? ` · ${totalDeleted} removed` : ''}
           </p>
           <p className="font-mono text-xs text-[#5a6175]">
-            {result.armies_created} factions{result.armies_updated > 0 ? ` (+${result.armies_updated})` : ''} · {result.squads_created} squads{result.squads_updated > 0 ? ` (+${result.squads_updated})` : ''} · {result.figures_created} exhibits{result.figures_updated > 0 ? ` (+${result.figures_updated})` : ''} · {result.anomalies_created} anomalies{result.anomalies_updated > 0 ? ` (+${result.anomalies_updated})` : ''}
+            {result.armies_created} factions{result.armies_updated > 0 ? ` (+${result.armies_updated})` : ''} · {result.squads_created} squads{result.squads_updated > 0 ? ` (+${result.squads_updated})` : ''}{(result.squads_deleted ?? 0) > 0 ? ` (−${result.squads_deleted})` : ''} · {result.figures_created} exhibits{result.figures_updated > 0 ? ` (+${result.figures_updated})` : ''}{(result.figures_deleted ?? 0) > 0 ? ` (−${result.figures_deleted})` : ''} · {result.anomalies_created} anomalies{result.anomalies_updated > 0 ? ` (+${result.anomalies_updated})` : ''}{(result.anomalies_deleted ?? 0) > 0 ? ` (−${result.anomalies_deleted})` : ''}
           </p>
           {result.errors.length > 0 && (
             <details className="text-xs">
